@@ -7,16 +7,19 @@ import React, { Component } from 'react';
 import { FileWidget } from './file-widget.js';
 import { TrackComponent, MidiHeader } from './track-component.js';
 import { MidiDocument } from '../midi/midi-utils.js';
-import { MPCConverter } from '../converter/mpc-converter.js';
+import { MPCConverter, downloadBlob } from '../converter/mpc-converter.js';
 import { Midi } from '@tonejs/midi';
+import { zipSync, strToU8 } from 'fflate';
 
 export class MidiConverterApp extends Component {
     constructor(props) {
         super(props);
         this.state = {
             files: [],
+            selected: new Set(),
             pendingLoads: 0,
-            errors: []
+            errors: [],
+            isExporting: false
         };
 
         this.nextFileId = 1;
@@ -76,10 +79,15 @@ export class MidiConverterApp extends Component {
                 midiArrayBuffer: data
             };
 
-            this.setState(prev => ({
-                files: [...prev.files, entry],
-                pendingLoads: Math.max(0, prev.pendingLoads - 1)
-            }));
+            this.setState(prev => {
+                const selected = new Set(prev.selected);
+                this.getTrackKeys(entry).forEach(key => selected.add(key));
+                return {
+                    files: [...prev.files, entry],
+                    selected,
+                    pendingLoads: Math.max(0, prev.pendingLoads - 1)
+                };
+            });
 
             console.log(`Successfully loaded ${name} with ${midiDocument.tracks.length} tracks`);
         } catch (error) {
@@ -104,11 +112,49 @@ export class MidiConverterApp extends Component {
     };
 
     removeFile = (id) => {
-        this.setState(prev => ({ files: prev.files.filter(file => file.id !== id) }));
+        this.setState(prev => {
+            const fileEntry = prev.files.find(file => file.id === id);
+            const selected = new Set(prev.selected);
+            if (fileEntry) {
+                this.getTrackKeys(fileEntry).forEach(key => selected.delete(key));
+            }
+            return { files: prev.files.filter(file => file.id !== id), selected };
+        });
     };
 
     clearAll = () => {
-        this.setState({ files: [], errors: [], pendingLoads: 0 });
+        this.setState({ files: [], selected: new Set(), errors: [], pendingLoads: 0 });
+    };
+
+    trackKey = (fileId, midiTrackIndex) => `${fileId}:${midiTrackIndex}`;
+
+    getTrackKeys = (fileEntry) => {
+        return this.getTracksWithNotes(fileEntry.midiDocument)
+            .map(({ midiTrackIndex }) => this.trackKey(fileEntry.id, midiTrackIndex));
+    };
+
+    setSelected = (keys, isSelected) => {
+        this.setState(prev => {
+            const selected = new Set(prev.selected);
+            keys.forEach(key => (isSelected ? selected.add(key) : selected.delete(key)));
+            return { selected };
+        });
+    };
+
+    toggleTrack = (key) => {
+        this.setSelected([key], !this.state.selected.has(key));
+    };
+
+    toggleFile = (fileEntry) => {
+        const keys = this.getTrackKeys(fileEntry);
+        const allSelected = keys.every(key => this.state.selected.has(key));
+        this.setSelected(keys, !allSelected);
+    };
+
+    toggleAll = () => {
+        const keys = this.state.files.flatMap(this.getTrackKeys);
+        const allSelected = keys.length > 0 && keys.every(key => this.state.selected.has(key));
+        this.setSelected(keys, !allSelected);
     };
 
     clearErrors = () => {
@@ -119,6 +165,54 @@ export class MidiConverterApp extends Component {
         return midiDocument.tracks
             .map((track, midiTrackIndex) => ({ track, midiTrackIndex }))
             .filter(({ track }) => track.notes && track.notes.length > 0);
+    };
+
+    /**
+     * Build one pattern per selected track; a file with a single note track
+     * becomes "<file name>.mpcpattern"
+     */
+    buildPatternFiles = (fileEntry) => {
+        const tracks = this.getTracksWithNotes(fileEntry.midiDocument);
+        const toneTracks = fileEntry.toneMidi
+            ? fileEntry.toneMidi.tracks.filter(track => track.notes && track.notes.length > 0)
+            : [];
+
+        return tracks
+            .map(({ track, midiTrackIndex }, uiIndex) => ({ track, midiTrackIndex, uiIndex }))
+            .filter(({ midiTrackIndex }) => this.state.selected.has(this.trackKey(fileEntry.id, midiTrackIndex)))
+            .map(({ track, midiTrackIndex, uiIndex }) => {
+                const pattern = fileEntry.converter.convertFullTrack(midiTrackIndex);
+                const label = tracks.length === 1
+                    ? ''
+                    : (track.name || toneTracks[uiIndex]?.name || `Track ${uiIndex + 1}`);
+                return {
+                    filename: MPCConverter.buildFilename(fileEntry.name, label),
+                    content: MPCConverter.exportMPCPattern(pattern)
+                };
+            });
+    };
+
+    downloadSelectedAsZip = () => {
+        this.setState({ isExporting: true });
+        try {
+            const zipEntries = {};
+            this.state.files.flatMap(this.buildPatternFiles).forEach(({ filename, content }) => {
+                // Same MIDI file name loaded twice: keep both patterns
+                let uniqueName = filename;
+                for (let n = 2; zipEntries[uniqueName]; n++) {
+                    uniqueName = filename.replace(/\.mpcpattern$/, ` (${n}).mpcpattern`);
+                }
+                zipEntries[uniqueName] = strToU8(content);
+            });
+
+            const zipData = zipSync(zipEntries);
+            downloadBlob(new Blob([zipData], { type: 'application/zip' }), 'mpc-patterns.zip');
+        } catch (error) {
+            console.error('Error exporting patterns:', error);
+            this.setState(prev => ({ errors: [...prev.errors, `Export: ${error.message}`] }));
+        } finally {
+            this.setState({ isExporting: false });
+        }
     };
 
     renderTrackList = (fileEntry) => {
@@ -149,6 +243,8 @@ export class MidiConverterApp extends Component {
                             converter={converter}
                             fileName={name}
                             isOnlyTrack={tracksWithNotes.length === 1}
+                            selected={this.state.selected.has(this.trackKey(fileEntry.id, midiTrackIndex))}
+                            onToggleSelect={() => this.toggleTrack(this.trackKey(fileEntry.id, midiTrackIndex))}
                             midiArrayBuffer={midiArrayBuffer}
                             toneTrack={toneTrack}
                             toneMidi={toneMidi}
@@ -183,7 +279,10 @@ export class MidiConverterApp extends Component {
     };
 
     renderFile = (fileEntry) => {
+        const { selected } = this.state;
         const { midiDocument, name, id } = fileEntry;
+        const trackKeys = this.getTrackKeys(fileEntry);
+        const selectedCount = trackKeys.filter(key => selected.has(key)).length;
 
         return (
             <div className="midi-content" key={`file-${id}`}>
@@ -196,6 +295,14 @@ export class MidiConverterApp extends Component {
                     {this.renderStats(midiDocument)}
 
                     <div className="content-controls">
+                        <label className="select-toggle">
+                            <input
+                                type="checkbox"
+                                checked={trackKeys.length > 0 && selectedCount === trackKeys.length}
+                                onChange={() => this.toggleFile(fileEntry)}
+                            />
+                            Include all tracks of this file in ZIP
+                        </label>
                         <button
                             className="clear-button"
                             onClick={() => this.removeFile(id)}
@@ -211,7 +318,9 @@ export class MidiConverterApp extends Component {
     };
 
     render() {
-        const { files, pendingLoads, errors } = this.state;
+        const { files, selected, pendingLoads, errors, isExporting } = this.state;
+        const allTrackKeys = files.flatMap(this.getTrackKeys);
+        const selectedCount = allTrackKeys.filter(key => selected.has(key)).length;
 
         return (
             <div className="midi-converter-app">
@@ -265,6 +374,21 @@ export class MidiConverterApp extends Component {
 
                 {files.length > 0 && (
                     <div className="content-controls">
+                        <label className="select-toggle">
+                            <input
+                                type="checkbox"
+                                checked={allTrackKeys.length > 0 && selectedCount === allTrackKeys.length}
+                                onChange={this.toggleAll}
+                            />
+                            Select all
+                        </label>
+                        <button
+                            className="mpc-button"
+                            onClick={this.downloadSelectedAsZip}
+                            disabled={isExporting || selectedCount === 0}
+                        >
+                            {isExporting ? 'Exporting...' : `Download ${selectedCount} pattern${selectedCount === 1 ? '' : 's'} as ZIP`}
+                        </button>
                         <button
                             className="clear-button"
                             onClick={this.clearAll}
@@ -279,7 +403,7 @@ export class MidiConverterApp extends Component {
                 <div className="usage-notes">
                     <h3>Usage Notes</h3>
                     <ul>
-                        <li>You can load several MIDI files at once.</li>
+                        <li>You can load several MIDI files at once. Tick the tracks you want and download them together as one ZIP file.</li>
                         <li>You can select a subset of a track to extract by clicking and dragging on the timeline.</li>
                         <li>At present, the program only converts Note On/Note Off events.</li>
                         <li>The MIDI file you choose and the MPC pattern files are processed entirely on your computer. No data is sent elsewhere.</li>

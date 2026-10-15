@@ -254,6 +254,14 @@ export class MPCConverter {
 
         return label ? `${baseName} - ${label}.mpcpattern` : `${baseName}.mpcpattern`;
     }
+
+    /**
+     * Convert a whole track, aligned to the earliest note of the document
+     */
+    convertFullTrack(midiTrackIndex) {
+        this.calcTimeBounds();
+        return this.convertTrackToMPC(midiTrackIndex + 1, this.lowTicks, this.highTicks + 1, this.lowTicks);
+    }
 }
 
 /**

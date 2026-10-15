@@ -26,6 +26,7 @@
   "license": "MIT",
   "dependencies": {
     "@tonejs/midi": "^2.0.28",
+    "fflate": "^0.8.2",
     "file-saver": "^2.0.5",
     "jquery": "^3.6.0",
     "midi-parser-js": "^4.0.4",

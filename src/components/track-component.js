@@ -134,7 +134,7 @@ export class TrackComponent extends Component {
     };
 
     render() {
-    const { track, trackNum, toneTrack, toneMidi } = this.props;
+    const { track, trackNum, toneTrack, toneMidi, selected, onToggleSelect } = this.props;
         const { selectedRange, isConverting } = this.state;
         
         console.log(`Rendering track ${trackNum}:`, track);
@@ -213,12 +213,24 @@ export class TrackComponent extends Component {
         return (
             <div className="track-component">
                 <div className="track-header">
-                    <h3>
-                        Track {trackNum}
-                        {displayTrackName && (
-                            <span className="track-name">: {displayTrackName}</span>
+                    <div className="track-header-row">
+                        <h3>
+                            Track {trackNum}
+                            {displayTrackName && (
+                                <span className="track-name">: {displayTrackName}</span>
+                            )}
+                        </h3>
+                        {onToggleSelect && (
+                            <label className="select-toggle">
+                                <input
+                                    type="checkbox"
+                                    checked={!!selected}
+                                    onChange={onToggleSelect}
+                                />
+                                Include in ZIP
+                            </label>
                         )}
-                    </h3>
+                    </div>
                     
                     {stats && (
                         <div className="track-stats">
@@ -269,7 +281,7 @@ export class TrackComponent extends Component {
                                     onClick={this.handleConvertToMPC}
                                     disabled={isConverting || !stats || stats.noteCount === 0}
                                 >
-                                    {isConverting ? 'Converting...' : '+ MPC Pattern'}
+                                    {isConverting ? 'Converting...' : (hasSelection ? 'Download selection as pattern' : 'Download pattern')}
                                 </button>
                                 <MidiPlayer
                                     midiArrayBuffer={midiArrayBuffer}
