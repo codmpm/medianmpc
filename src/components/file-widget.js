@@ -206,7 +206,7 @@ export const FileWidget = ({
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isLoading}
                     >
-                        {isLoading ? 'Loading...' : 'Choose MIDI File'}
+                        {isLoading ? 'Loading...' : (multiple ? 'Choose MIDI Files' : 'Choose MIDI File')}
                     </button>
                 </div>
             ) : (
@@ -215,11 +215,11 @@ export const FileWidget = ({
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isLoading}
                 >
-                    {isLoading ? 'Loading...' : 'Choose MIDI File'}
+                    {isLoading ? 'Loading...' : (multiple ? 'Choose MIDI Files' : 'Choose MIDI File')}
                 </button>
             )}
 
-            {fileInfo && (
+            {fileInfo && !multiple && (
                 <div className="file-info">
                     <div className="file-details">
                         <strong>File:</strong> {fileInfo.name}<br/>

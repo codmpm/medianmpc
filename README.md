@@ -5,10 +5,14 @@ A web-based application that converts MIDI files to MPC pattern format (.mpcpatt
 ## Features
 
 - **MIDI File Support**: Load and parse standard MIDI files (.mid, .midi)
+- **Multiple Files**: Load several MIDI files at once, each shown in its own section
 - **Visual Timeline**: Interactive graphical display of MIDI tracks with note visualization
 - **Time Selection**: Click and drag to select specific time ranges for conversion
 - **Multi-Track Support**: Convert individual tracks or entire MIDI files
 - **MPC Pattern Export**: Generate .mpcpattern files compatible with Akai devices
+- **Meaningful File Names**: Patterns are named after the MIDI file (and track), not "Track_1"
+- **ZIP Export**: Tick the tracks you want and download all their patterns as one ZIP file
+- **Matching .xtm Track Files**: Optionally add an empty MPC track file per pattern, so the MPC suggests the right name when you save the pattern as a custom arp pattern
 - **Real-time Preview**: See notes, velocities, and timing information
 - **Drag & Drop**: Easy file loading with drag and drop support
 
@@ -19,10 +23,14 @@ src/
 ├── components/           # React components
 │   ├── app.js           # Main application component
 │   ├── file-widget.js   # File input and drag & drop handling
+│   ├── midi-player.js   # Track playback
 │   ├── midi-visualizer.js  # MIDI track visualization
 │   └── track-component.js   # Individual track display and controls
 ├── converter/           # MPC conversion logic
-│   └── mpc-converter.js # MIDI to MPC pattern conversion
+│   ├── mpc-converter.js # MIDI to MPC pattern conversion and file naming
+│   ├── xtm-builder.js   # Builds named, empty MPC track files (.xtm)
+│   └── templates/
+│       └── track-template.xtm  # Empty track file saved by MPC 3.9.1.2
 ├── midi/               # MIDI processing utilities
 │   ├── midi-utils.js   # Core MIDI classes and utilities
 │   ├── midi-parser.js  # MIDI file parsing
@@ -58,13 +66,14 @@ Create a production build:
 npm run build
 ```
 
-The built files will be in the `dist/` directory.
+The built files will be in the `docs/` directory, which the GitHub Pages workflow deploys.
 
 ## Usage
 
-1. **Load a MIDI File**: 
-   - Click "Choose MIDI File" or drag and drop a .mid/.midi file
-   - The file is processed entirely in your browser - no data is sent to external servers
+1. **Load MIDI Files**: 
+   - Click "Choose MIDI Files" or drag and drop one or more .mid/.midi files
+   - The files are processed entirely in your browser - no data is sent to external servers
+   - Each file can be removed on its own, or all at once with "Remove all files"
 
 2. **View Tracks**: 
    - Each MIDI track is displayed with a visual timeline
@@ -75,9 +84,32 @@ The built files will be in the `dist/` directory.
    - Click and drag on the timeline to select a specific portion
    - Only the selected range will be converted to MPC format
 
-4. **Convert to MPC**:
-   - Click the "+ MPC Pattern" button for any track
-   - A .mpcpattern file will be downloaded automatically
+4. **Download a Single Pattern**:
+   - Click "Download pattern" (or "Download selection as pattern") on any track
+   - The .mpcpattern file is downloaded directly
+
+5. **Download Several Patterns as ZIP**:
+   - Every track has an "Include in ZIP" checkbox; each file has one for all of its tracks, and "Select all" covers everything. Newly loaded files are fully selected
+   - Click "Download N patterns as ZIP" to get `mpc-patterns.zip`
+   - The ZIP always contains whole tracks; a time selection only applies to the single-pattern download
+   - Tick "Add matching .xtm track files" to also get an empty MPC track file for every pattern (see below)
+
+### File Names
+
+- A MIDI file with one track with notes becomes `<file name>.mpcpattern`
+- A MIDI file with several tracks with notes becomes `<file name> - <track name>.mpcpattern`, or `<file name> - Track N.mpcpattern` for unnamed tracks
+- Characters that are not allowed in file names are replaced; if the same file is loaded twice, the ZIP keeps both with a ` (2)` suffix
+
+### Saving Patterns as Custom Arp Patterns on the MPC
+
+When you save a track as an arp pattern on the MPC, you have to type in the name by hand, unless the track already carries the name you want. The matching .xtm track files take care of that:
+
+1. Download the patterns as ZIP with "Add matching .xtm track files" ticked
+2. On the MPC, load `<name>.xtm`. This creates a track called `<name>`
+3. Load `<name>.mpcpattern` into that track
+4. Save the track as an arp pattern: the name is already filled in
+
+The .xtm files contain no notes, because the MPC ignores note events when it loads a track file. The notes always come from the .mpcpattern.
 
 ## Supported Features
 
@@ -124,11 +156,18 @@ The built files will be in the `dist/` directory.
 - 960 PPQ resolution
 - Note events with timing, pitch, velocity, and duration
 
+### Output: MPC Track Files (.xtm, optional)
+- Gzip-compressed text: a short header (`ACVS`, MPC version, `SerialisableTrackData`, `json`, OS) followed by JSON
+- Built from an empty track saved by MPC 3.9.1.2; only the track and program name are replaced
+- The template contains no samples, file paths or device IDs
+- The JSON is edited as text, because a JSON round trip in the browser would turn values like `1.0` into `1` and round the pattern length `9223372036854775807`
+
 ## Limitations
 
 - Only Note On/Note Off events are converted
 - Other MIDI events (controllers, program changes, etc.) are not included in MPC patterns
-- Time selection is currently track-specific
+- Time selection is currently track-specific and not used for the ZIP export
+- The .xtm template was saved with MPC 3.9.1.2; other firmware versions have not been tested
 - Maximum file size limited by browser memory
 
 ## Contributing
@@ -139,6 +178,12 @@ To contribute to this project:
 2. Add appropriate documentation for new features
 3. Test with various MIDI files
 4. Ensure compatibility with existing MPC devices
+
+## Credits
+
+The original converter was written by [Catnip/Jamie Faye Fenton (Fentonia)](https://www.fentonia.com/catnip/midianmpc/index.html) and restructured into this codebase by [miathedev](https://github.com/miathedev/medianmpc).
+
+The multi-file loading, the file naming, the ZIP export with track selection and the matching .xtm track files were developed together with [Claude](https://claude.com/claude-code), Anthropic's AI assistant, using Claude Code.
 
 ## License
 
