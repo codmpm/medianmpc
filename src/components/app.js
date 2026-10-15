@@ -10,6 +10,7 @@ import { MidiDocument } from '../midi/midi-utils.js';
 import { MPCConverter, downloadBlob } from '../converter/mpc-converter.js';
 import { Midi } from '@tonejs/midi';
 import { zipSync, strToU8 } from 'fflate';
+import { loadXtmTemplate, buildXtm } from '../converter/xtm-builder.js';
 
 export class MidiConverterApp extends Component {
     constructor(props) {
@@ -17,6 +18,7 @@ export class MidiConverterApp extends Component {
         this.state = {
             files: [],
             selected: new Set(),
+            includeXtm: false,
             pendingLoads: 0,
             errors: [],
             isExporting: false
@@ -186,23 +188,28 @@ export class MidiConverterApp extends Component {
                     ? ''
                     : (track.name || toneTracks[uiIndex]?.name || `Track ${uiIndex + 1}`);
                 return {
-                    filename: MPCConverter.buildFilename(fileEntry.name, label),
+                    baseName: MPCConverter.buildBaseName(fileEntry.name, label),
                     content: MPCConverter.exportMPCPattern(pattern)
                 };
             });
     };
 
-    downloadSelectedAsZip = () => {
+    downloadSelectedAsZip = async () => {
+        const { files, includeXtm } = this.state;
         this.setState({ isExporting: true });
         try {
+            const xtmTemplate = includeXtm ? await loadXtmTemplate() : null;
             const zipEntries = {};
-            this.state.files.flatMap(this.buildPatternFiles).forEach(({ filename, content }) => {
+            files.flatMap(this.buildPatternFiles).forEach(({ baseName, content }) => {
                 // Same MIDI file name loaded twice: keep both patterns
-                let uniqueName = filename;
-                for (let n = 2; zipEntries[uniqueName]; n++) {
-                    uniqueName = filename.replace(/\.mpcpattern$/, ` (${n}).mpcpattern`);
+                let uniqueName = baseName;
+                for (let n = 2; zipEntries[`${uniqueName}.mpcpattern`]; n++) {
+                    uniqueName = `${baseName} (${n})`;
                 }
-                zipEntries[uniqueName] = strToU8(content);
+                zipEntries[`${uniqueName}.mpcpattern`] = strToU8(content);
+                if (xtmTemplate) {
+                    zipEntries[`${uniqueName}.xtm`] = buildXtm(xtmTemplate, uniqueName);
+                }
             });
 
             const zipData = zipSync(zipEntries);
@@ -318,7 +325,7 @@ export class MidiConverterApp extends Component {
     };
 
     render() {
-        const { files, selected, pendingLoads, errors, isExporting } = this.state;
+        const { files, selected, includeXtm, pendingLoads, errors, isExporting } = this.state;
         const allTrackKeys = files.flatMap(this.getTrackKeys);
         const selectedCount = allTrackKeys.filter(key => selected.has(key)).length;
 
@@ -382,6 +389,17 @@ export class MidiConverterApp extends Component {
                             />
                             Select all
                         </label>
+                        <label
+                            className="select-toggle"
+                            title="Adds an empty MPC track file with the same name for each pattern. Load it on the MPC before the pattern, so saving the pattern as an arp pattern suggests the right name."
+                        >
+                            <input
+                                type="checkbox"
+                                checked={includeXtm}
+                                onChange={() => this.setState(prev => ({ includeXtm: !prev.includeXtm }))}
+                            />
+                            Add matching .xtm track files
+                        </label>
                         <button
                             className="mpc-button"
                             onClick={this.downloadSelectedAsZip}
@@ -404,6 +422,7 @@ export class MidiConverterApp extends Component {
                     <h3>Usage Notes</h3>
                     <ul>
                         <li>You can load several MIDI files at once. Tick the tracks you want and download them together as one ZIP file.</li>
+                        <li>With &quot;Add matching .xtm track files&quot;, the ZIP also contains an empty MPC track file per pattern with the same name. Load the .xtm on the MPC first, then the .mpcpattern into that track: when you save it as an arp pattern, the name is already filled in. The .xtm itself contains no notes.</li>
                         <li>You can select a subset of a track to extract by clicking and dragging on the timeline.</li>
                         <li>At present, the program only converts Note On/Note Off events.</li>
                         <li>The MIDI file you choose and the MPC pattern files are processed entirely on your computer. No data is sent elsewhere.</li>

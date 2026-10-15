@@ -242,6 +242,13 @@ export class MPCConverter {
      * when a file yields more than one pattern
      */
     static buildFilename(originalFilename, trackLabel = '') {
+        return `${MPCConverter.buildBaseName(originalFilename, trackLabel)}.mpcpattern`;
+    }
+
+    /**
+     * Pattern name without extension: "<original name>" or "<original name> - <track>"
+     */
+    static buildBaseName(originalFilename, trackLabel = '') {
         const sanitize = (value) => (value || '')
             .replace(/[\\/:*?"<>|\u0000-\u001F\u007F]+/g, ' ') // eslint-disable-line no-control-regex
             .replace(/\s+/g, ' ')
@@ -252,7 +259,7 @@ export class MPCConverter {
         const baseName = sanitize(dotIndex > 0 ? fileName.slice(0, dotIndex) : fileName) || 'midi_pattern';
         const label = sanitize(trackLabel);
 
-        return label ? `${baseName} - ${label}.mpcpattern` : `${baseName}.mpcpattern`;
+        return label ? `${baseName} - ${label}` : baseName;
     }
 
     /**
