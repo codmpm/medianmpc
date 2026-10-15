@@ -169,6 +169,8 @@ export class MidiConverterApp extends Component {
                     midiTrackIndex={midiTrackIndex}
                     song={midiDocument}
                     converter={converter}
+                    fileName={this.state.midiText}
+                    isOnlyTrack={tracksWithNotes.length === 1}
                     midiArrayBuffer={midiArrayBuffer}
                     toneTrack={toneTrack}
                     toneMidi={toneMidi}

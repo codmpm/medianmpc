@@ -229,18 +229,45 @@ export class MPCConverter {
     /**
      * Create downloadable MPC pattern file
      */
-    static createMPCFile(pattern, trackNumber, originalFilename) {
+    static createMPCFile(pattern, originalFilename, trackLabel = '') {
         const patternJSON = MPCConverter.exportMPCPattern(pattern);
         const blob = new Blob([patternJSON], { type: 'application/json' });
-        
-        // Generate filename
-        const baseName = originalFilename 
-            ? originalFilename.split('/').pop().split('.')[0]
-            : 'midi_pattern';
-        const filename = `${baseName}_Track_${trackNumber}.mpcpattern`;
-        
+        const filename = MPCConverter.buildFilename(originalFilename, trackLabel);
+
         return { blob, filename };
     }
+
+    /**
+     * Build "<original name>.mpcpattern", or "<original name> - <track>.mpcpattern"
+     * when a file yields more than one pattern
+     */
+    static buildFilename(originalFilename, trackLabel = '') {
+        const sanitize = (value) => (value || '')
+            .replace(/[\\/:*?"<>|\u0000-\u001F\u007F]+/g, ' ') // eslint-disable-line no-control-regex
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        const fileName = (originalFilename || '').split(/[\\/]/).pop();
+        const dotIndex = fileName.lastIndexOf('.');
+        const baseName = sanitize(dotIndex > 0 ? fileName.slice(0, dotIndex) : fileName) || 'midi_pattern';
+        const label = sanitize(trackLabel);
+
+        return label ? `${baseName} - ${label}.mpcpattern` : `${baseName}.mpcpattern`;
+    }
+}
+
+/**
+ * Trigger a browser download for a blob
+ */
+export function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /**

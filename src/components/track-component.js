@@ -5,7 +5,7 @@
 
 import React, { Component } from 'react';
 import { MidiVisualizer } from './midi-visualizer.js';
-import { MPCConverter } from '../converter/mpc-converter.js';
+import { MPCConverter, downloadBlob } from '../converter/mpc-converter.js';
 import { MidiPlayer } from './midi-player.js';
 import { getGeneralMidiInstrumentName } from '../midi/midi-utils.js';
 
@@ -25,7 +25,7 @@ export class TrackComponent extends Component {
     };
 
     handleConvertToMPC = () => {
-    const { track, trackNum, converter, song, midiArrayBuffer } = this.props;
+        const { track, trackNum, midiTrackIndex, converter, fileName, isOnlyTrack, toneTrack } = this.props;
         const { selectedRange } = this.state;
         
         if (!track || !converter) {
@@ -66,7 +66,7 @@ export class TrackComponent extends Component {
 
             // Convert track to MPC format
             const mpcPattern = converter.convertTrackToMPC(
-                trackNum,
+                midiTrackIndex + 1,
                 timeRange.start,
                 timeRange.end,
                 converter.lowTicks,
@@ -75,13 +75,12 @@ export class TrackComponent extends Component {
 
             // Create downloadable file
             const { blob, filename } = MPCConverter.createMPCFile(
-                mpcPattern, 
-                trackNum, 
-                song.name || 'midi_file'
+                mpcPattern,
+                fileName,
+                isOnlyTrack ? '' : (track.name || toneTrack?.name || `Track ${trackNum}`)
             );
 
-            // Trigger download
-            this.downloadFile(blob, filename);
+            downloadBlob(blob, filename);
 
         } catch (error) {
             console.error('Error converting to MPC:', error);
@@ -89,17 +88,6 @@ export class TrackComponent extends Component {
         } finally {
             this.setState({ isConverting: false });
         }
-    };
-
-    downloadFile = (blob, filename) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
     };
 
     getTrackStats = () => {
@@ -146,7 +134,7 @@ export class TrackComponent extends Component {
     };
 
     render() {
-    const { track, trackNum, song, toneTrack, toneMidi } = this.props;
+    const { track, trackNum, toneTrack, toneMidi } = this.props;
         const { selectedRange, isConverting } = this.state;
         
         console.log(`Rendering track ${trackNum}:`, track);
