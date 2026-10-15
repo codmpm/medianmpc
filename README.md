@@ -49,7 +49,7 @@ Start the development server:
 npm run dev
 ```
 
-This will start a webpack dev server at `http://localhost:3000` with hot reloading enabled.
+This will start a webpack dev server at `http://localhost:8080/medianmpc/` with hot reloading enabled.
 
 ## Building for Production
 
