@@ -27,7 +27,7 @@ export default (env, argv) => {
       },
       compress: true,
       port: 8080,
-      open: true,
+      open: ['/medianmpc/'],
       hot: true,
       liveReload: true,
       watchFiles: [
