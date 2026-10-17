@@ -35,10 +35,8 @@ First release of this fork of [miathedev/medianmpc](https://github.com/miathedev
 ### Fixed
 
 - Exporting a track exported the wrong (empty) track in type 1 MIDI files with a separate tempo track.
-- Downloading several patterns only delivered the last file, because browsers block quick successive downloads.
 - Dragging past the left edge of the timeline produced negative selection times.
 - Selection times and track durations were shown in seconds computed for 480 ticks per quarter at 120 BPM, which was wrong for most files.
 - The dev server opened `http://localhost:8080/` instead of `http://localhost:8080/medianmpc/`.
-- Spacing between buttons; "Select all" no longer looks ticked when only some tracks are selected.
 
 [0.1.0]: https://github.com/codmpm/medianmpc/releases/tag/v0.1.0
