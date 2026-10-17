@@ -1,12 +1,18 @@
 /**
  * MIDI Visualizer Component
- * Displays MIDI tracks graphically with div-based rendering and drag selection
+ * Displays a MIDI track on a sixteenth-note grid with div-based rendering and
+ * drag selection. Positions are MPC pulses (960 per quarter note) relative to
+ * the earliest note of the document, selections are whole sixteenths.
  */
 
 import React, { Component } from 'react';
+import { MPC_PPQ, SIXTEENTH_PULSES } from '../converter/mpc-converter.js';
+
+const TARGET_WIDTH = 800; // Width of the timeline in pixels
+const MIN_SIXTEENTH_LINE_SPACING = 4; // Hide sixteenth lines when they get denser
 
 /**
- * MIDI Grid Component - Renders the actual note grid using divs (like the original)
+ * MIDI Grid Component - Renders the note grid using divs (like the original)
  */
 class MidiGrid extends Component {
     constructor(props) {
@@ -15,184 +21,119 @@ class MidiGrid extends Component {
         this.insetX = 6;
         this.insetY = 4;
         this.noteHeight = 4;
-        this.scaling = 0.5; // Reduced scaling to fit notes in viewport
-        this.dragging = false;
-        this.dragStart = 0;
-        this.start = 0;
-        this.end = 0;
-        this.duration = 0;
+        this.scaling = 1; // Pixels per MPC pulse
         this.height = 0;
-        this.width = 0;
-        this.selection = null;
+        this.selectionEl = null;
     }
 
     componentDidMount() {
         this.symbolize();
+        this.drawSelection(this.props.selection);
     }
 
     componentDidUpdate(prevProps) {
-        if (prevProps.track !== this.props.track || prevProps.converter !== this.props.converter) {
+        if (prevProps.track !== this.props.track
+            || prevProps.converter !== this.props.converter
+            || prevProps.totalSixteenths !== this.props.totalSixteenths) {
             this.symbolize();
         }
+        this.drawSelection(this.props.selection);
     }
 
     symbolize() {
-        console.log("Device Pixel Ratio: " + window.devicePixelRatio);
-        
-        const track = this.props.track;
-        
-        // Get the converter's calculated low time, or calculate it ourselves
-        let lowTime = 0;
-        if (this.props.converter && this.props.converter.lowTicks !== undefined) {
-            lowTime = this.props.converter.lowTicks;
-        } else if (track.notes && track.notes.length > 0) {
-            // Calculate minimum time from the track's notes
-            lowTime = Math.min(...track.notes.map(note => note.time));
-        }
-        
+        const { track, converter, totalSixteenths } = this.props;
         const notes = track.notes;
-        
-        console.log('Visualizer symbolize called with:', {
-            track: track,
-            lowTime: lowTime,
-            notesCount: notes ? notes.length : 0,
-            firstFewNotes: notes ? notes.slice(0, 3) : null
-        });
-        
-        if (!notes || notes.length === 0) {
-            console.log('No notes to visualize');
-            return;
-        }
 
-        let minTime = 1e8;
-        let maxTime = -1e8;
-        let minPitch = 1e3;
-        let maxPitch = -1e3;
-        const noteCount = notes.length;
-
-        // Find bounds
-        for (let i = 0; i < noteCount; ++i) {
-            const note = notes[i];
-            if (note.midi < minPitch) minPitch = note.midi;
-            if (note.midi > maxPitch) maxPitch = note.midi;
-            
-            const noteStart = note.time;
-            const noteEnd = noteStart + note.duration;
-            if (noteStart < minTime) minTime = noteStart;
-            if (noteEnd > maxTime) maxTime = noteEnd;
-        }
-
-        const pitchRange = maxPitch - minPitch;
-        if (maxTime - minTime < 0 || pitchRange < 0) {
-            return;
-        }
-
-        // Calculate dynamic scaling to fit in a reasonable viewport width
-        const timeRange = maxTime - minTime;
-        const targetWidth = 800; // Target width in pixels
-        this.scaling = targetWidth / timeRange; // Dynamic scaling based on time range
-        
-        console.log(`Time range: ${timeRange}, calculated scaling: ${this.scaling}`);
-
-        // Clear existing content
         if (this.el) {
             this.el.innerHTML = '';
         }
+        if (!notes || notes.length === 0 || !converter) {
+            return;
+        }
+
+        converter.calcTimeBounds();
+        const minPitch = Math.min(...notes.map(note => note.midi));
+        const maxPitch = Math.max(...notes.map(note => note.midi));
+
+        const totalPulses = totalSixteenths * SIXTEENTH_PULSES;
+        this.scaling = TARGET_WIDTH / totalPulses;
 
         const gridDiv = document.createElement('div');
         gridDiv.className = 'midigrid';
-        
-        console.log("Min time: " + minTime + " " + lowTime);
 
-        // Draw each note
-        for (let i = 0; i < noteCount; ++i) {
-            const note = notes[i];
-            const noteTime = note.time - lowTime;
-            const x = Math.round(noteTime * this.scaling + this.insetX);
-            let width = Math.round(note.duration * this.scaling);
-            
-            // Minimum width for visibility
-            if (width < 2) width = 2;
-            if (width > 50 && this.scaling > 1) width = Math.max(2, width - 1);
+        // Grid lines: bars, beats and (if not too dense) sixteenths
+        const line = (color, pulses) =>
+            `repeating-linear-gradient(to right, ${color} 0 1px, transparent 1px ${pulses * this.scaling}px)`;
+        const layers = [line('rgba(0, 0, 0, 0.35)', 4 * MPC_PPQ), line('rgba(0, 0, 0, 0.18)', MPC_PPQ)];
+        if (SIXTEENTH_PULSES * this.scaling >= MIN_SIXTEENTH_LINE_SPACING) {
+            layers.push(line('rgba(0, 0, 0, 0.07)', SIXTEENTH_PULSES));
+        }
+        gridDiv.style.backgroundImage = layers.join(', ');
+        gridDiv.style.backgroundPosition = `${this.insetX}px 0`;
+        gridDiv.style.backgroundRepeat = 'no-repeat';
+        gridDiv.style.backgroundSize = `${Math.round(totalPulses * this.scaling) + 1}px 100%`;
 
-            const y = (maxPitch - note.midi) * this.noteHeight + this.insetY;
-            
+        notes.forEach(note => {
+            const start = converter.toMpcPulses(note.time);
+            const end = converter.toMpcPulses(note.time + note.duration);
+
             const noteDiv = document.createElement('div');
             noteDiv.className = 'midiitem';
-            noteDiv.style.left = x + 'px';
-            noteDiv.style.top = y + 'px';
-            noteDiv.style.width = width + 'px';
-            noteDiv.style.height = this.noteHeight + 'px'; // Add explicit height
-            
-            console.log(`Created note div: x=${x}, y=${y}, width=${width}, height=${this.noteHeight}`);
-            
+            noteDiv.style.left = this.pulsesToX(start) + 'px';
+            noteDiv.style.top = ((maxPitch - note.midi) * this.noteHeight + this.insetY) + 'px';
+            noteDiv.style.width = Math.max(2, Math.round((end - start) * this.scaling)) + 'px';
+            noteDiv.style.height = this.noteHeight + 'px';
             gridDiv.appendChild(noteDiv);
-        }
+        });
 
-        this.duration = maxTime - lowTime;
-        const totalWidth = Math.round((maxTime - lowTime) * this.scaling + 2 * this.insetX);
-        const totalHeight = Math.round((pitchRange + 1) * this.noteHeight + 2 * this.insetY + 2);
-        
-        this.height = totalHeight;
-        this.width = totalWidth;
+        this.height = Math.round((maxPitch - minPitch + 1) * this.noteHeight + 2 * this.insetY + 2);
 
-        // Create selection overlay
-        this.selection = document.createElement('div');
-        this.selection.className = 'selbox';
-        gridDiv.appendChild(this.selection);
+        this.selectionEl = document.createElement('div');
+        this.selectionEl.className = 'selbox';
+        gridDiv.appendChild(this.selectionEl);
 
-        gridDiv.style.width = totalWidth + 'px';
-        gridDiv.style.height = totalHeight + 'px';
-
-        console.log(`Grid created: ${totalWidth}x${totalHeight}px with ${noteCount} notes`);
-        console.log('Grid element:', gridDiv);
+        gridDiv.style.width = (Math.round(totalPulses * this.scaling) + 2 * this.insetX) + 'px';
+        gridDiv.style.height = this.height + 'px';
 
         if (this.el) {
             this.el.appendChild(gridDiv);
-            console.log('Grid appended to container:', this.el);
-        } else {
-            console.error('Container element not found!');
         }
     }
 
-    changeSel(start, end) {
-        const startX = this.timeToX(start);
-        const endX = this.timeToX(end);
-        
-        this.start = start;
-        this.end = end;
-        
-        if (this.selection) {
-            this.selection.style.left = startX + 'px';
-            this.selection.style.width = (endX - startX) + 'px';
-            this.selection.style.top = '0px';
-            this.selection.style.height = this.height + 'px';
+    /**
+     * Show a selection of whole sixteenths, or hide it for null
+     */
+    drawSelection(selection) {
+        if (!this.selectionEl) {
+            return;
         }
+        if (!selection || selection.end <= selection.start) {
+            this.selectionEl.style.display = 'none';
+            return;
+        }
+        const startX = this.pulsesToX(selection.start * SIXTEENTH_PULSES);
+        const endX = this.pulsesToX(selection.end * SIXTEENTH_PULSES);
+        this.selectionEl.style.display = 'block';
+        this.selectionEl.style.left = startX + 'px';
+        this.selectionEl.style.width = (endX - startX) + 'px';
+        this.selectionEl.style.top = '0px';
+        this.selectionEl.style.height = this.height + 'px';
     }
 
-    timeToX(time) {
-        // Get the converter's low time for proper offset
-        const lowTime = this.props.converter ? this.props.converter.lowTicks : 0;
-        return Math.round((time - lowTime) * this.scaling) + this.insetX;
+    pulsesToX(pulses) {
+        return Math.round(pulses * this.scaling) + this.insetX;
     }
 
-    xToTime(x) {
-        // Get the converter's low time for proper offset
-        const lowTime = this.props.converter ? this.props.converter.lowTicks : 0;
-        return ((x - this.insetX) / this.scaling) + lowTime;
+    /**
+     * Pixel position to the nearest sixteenth, limited to the grid
+     */
+    xToSixteenth(x) {
+        const sixteenth = Math.round((x - this.insetX) / this.scaling / SIXTEENTH_PULSES);
+        return Math.min(this.props.totalSixteenths, Math.max(0, sixteenth));
     }
 
     bounds() {
         return this.el ? this.el.getBoundingClientRect() : { left: 0, top: 0 };
-    }
-
-    getSelection() {
-        // The selection times are already in absolute time coordinates
-        // because timeToX and xToTime handle the lowTicks offset
-        return {
-            start: this.start,
-            end: this.end
-        };
     }
 
     render() {
@@ -203,7 +144,9 @@ class MidiGrid extends Component {
 }
 
 /**
- * Interactive MIDI Visualizer with drag selection
+ * Interactive MIDI Visualizer with drag selection that snaps to sixteenths.
+ * The selection is controlled by the parent: `selection` ({ start, end } in
+ * sixteenths, or null) and `onSelectionChange`.
  */
 export class MidiVisualizer extends Component {
     constructor(props) {
@@ -212,73 +155,39 @@ export class MidiVisualizer extends Component {
     }
 
     handleMouseDown = (e) => {
-        this.beginDrag(e);
-    };
+        if (!this.plot) {
+            return;
+        }
+        e.preventDefault();
 
-    beginDrag(e) {
-        const self = this;
         const bounds = this.plot.bounds();
-        let isDragging = false;
-        let startTime = 0;
-        let endTime = 0;
+        const startSixteenth = this.plot.xToSixteenth(e.clientX - bounds.left);
+        let endSixteenth = startSixteenth;
 
-        const handleMouseMove = (e) => {
-            if (isDragging) {
-                const x = e.clientX - bounds.left;
-                endTime = self.plot.xToTime(x);
-                
-                let selStart = startTime;
-                let selEnd = endTime;
-                
-                if (endTime < startTime) {
-                    selStart = endTime;
-                    selEnd = startTime;
-                }
-                
-                self.plot.changeSel(selStart, selEnd);
-            }
+        const currentSelection = () => ({
+            start: Math.min(startSixteenth, endSixteenth),
+            end: Math.max(startSixteenth, endSixteenth)
+        });
+
+        const handleMouseMove = (moveEvent) => {
+            endSixteenth = this.plot.xToSixteenth(moveEvent.clientX - bounds.left);
+            this.plot.drawSelection(currentSelection());
         };
 
-        const handleMouseUp = (e) => {
-            isDragging = false;
-            
-            // If no drag occurred, clear selection
-            if (startTime === endTime) {
-                self.plot.changeSel(0, 0);
-            }
-            
-            // Notify parent of selection change
-            if (self.props.onTimeRangeSelect) {
-                const selection = self.plot.getSelection();
-                self.props.onTimeRangeSelect(selection);
-            }
-
-            // Remove event listeners
+        const handleMouseUp = () => {
             window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('touchmove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
-            window.removeEventListener('touchend', handleMouseUp);
+
+            // A click without dragging over at least one sixteenth clears the selection
+            const selection = currentSelection();
+            if (this.props.onSelectionChange) {
+                this.props.onSelectionChange(selection.end > selection.start ? selection : null);
+            }
         };
 
-        // Initialize drag
-        const startDrag = (e) => {
-            const x = e.clientX - bounds.left;
-            startTime = self.plot.xToTime(x);
-            endTime = startTime;
-            isDragging = true;
-
-            window.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('touchmove', handleMouseMove);
-            window.addEventListener('mouseup', handleMouseUp);
-            window.addEventListener('touchend', handleMouseUp);
-        };
-
-        startDrag(e);
-    }
-
-    getSelectedTimes() {
-        return this.plot ? this.plot.getSelection() : { start: 0, end: 0 };
-    }
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+    };
 
     render() {
         return React.createElement('div', {
@@ -287,7 +196,9 @@ export class MidiVisualizer extends Component {
         }, React.createElement(MidiGrid, {
             ref: plot => this.plot = plot,
             track: this.props.track,
-            converter: this.props.converter
+            converter: this.props.converter,
+            totalSixteenths: this.props.totalSixteenths,
+            selection: this.props.selection
         }));
     }
 }

@@ -521,50 +521,24 @@ div.selbox {
         padding: 12px 15px;
     }
 }
-.pattern-length {
+.selection-info {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 15px;
-    font-size: 14px;
+    align-items: baseline;
+    gap: 4px 12px;
+}
+
+.selection-label {
+    font-weight: 600;
     color: #495057;
 }
 
-.pattern-length-label {
-    font-weight: 600;
-}
-
-.pattern-length input {
-    width: 64px;
-    padding: 4px 6px;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    font-size: 14px;
-    text-align: right;
-}
-
-.length-step-button {
-    width: 28px;
-    height: 28px;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    background-color: white;
-    font-size: 16px;
-    line-height: 1;
-    cursor: pointer;
-}
-
-.length-step-button:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-.pattern-length-value {
+.mpc-time {
     font-family: monospace;
 }
 
-.pattern-length-hint {
+.selection-hint {
+    flex-basis: 100%;
     color: #6c757d;
     font-size: 12px;
 }

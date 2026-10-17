@@ -13,67 +13,27 @@ export class TrackComponent extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            selectedRange: { start: 0, end: 0 },
             isConverting: false
         };
-        
-        this.visualizerRef = React.createRef();
     }
 
-    handleTimeRangeSelect = (range) => {
-        this.setState({ selectedRange: range });
-    };
-
     handleConvertToMPC = () => {
-        const { track, trackNum, midiTrackIndex, converter, fileName, isOnlyTrack, toneTrack } = this.props;
-        const { selectedRange } = this.state;
-        
-        if (!track || !converter) {
-            console.error('Missing track or converter');
+        const { track, trackNum, midiTrackIndex, converter, fileName, isOnlyTrack, toneTrack, range } = this.props;
+
+        if (!track || !converter || !range) {
+            console.error('Missing track, converter or range');
             return;
         }
 
         this.setState({ isConverting: true });
 
         try {
-            // Get selected time range from visualizer
-            let timeRange = this.visualizerRef.current 
-                ? this.visualizerRef.current.getSelectedTimes()
-                : selectedRange;
-
-            console.log('Time range before processing:', timeRange);
-
-            // If no selection is made (start == end), use the entire track
-            if (timeRange.start === timeRange.end || timeRange.start === 0 && timeRange.end === 0) {
-                // Calculate the full time range of the track
-                let minTime = Infinity;
-                let maxTime = -Infinity;
-                
-                if (track.notes && track.notes.length > 0) {
-                    track.notes.forEach(note => {
-                        minTime = Math.min(minTime, note.time);
-                        maxTime = Math.max(maxTime, note.time + note.duration);
-                    });
-                    
-                    timeRange = {
-                        start: minTime === Infinity ? 0 : minTime,
-                        end: maxTime === -Infinity ? 1000 : maxTime
-                    };
-                }
-            }
-
-            console.log('Final time range for conversion:', timeRange);
-
-            // Convert track to MPC format
-            const mpcPattern = converter.convertTrackToMPC(
-                midiTrackIndex + 1,
-                timeRange.start,
-                timeRange.end,
-                converter.lowTicks,
-                false
+            const mpcPattern = converter.convertRangeToMPC(
+                midiTrackIndex,
+                range.start * SIXTEENTH_PULSES,
+                range.end * SIXTEENTH_PULSES
             );
 
-            // Create downloadable file
             const { blob, filename } = MPCConverter.createMPCFile(
                 mpcPattern,
                 fileName,
@@ -126,19 +86,13 @@ export class TrackComponent extends Component {
         return `${noteName}${octave}`;
     };
 
-    formatTime = (ticks, ticksPerQuarter = 480) => {
-        const seconds = (ticks / ticksPerQuarter / 2); // Assuming 120 BPM
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = (seconds % 60).toFixed(1);
-        return `${minutes}:${remainingSeconds.padStart(4, '0')}`;
-    };
+    // Position or length in sixteenths in MPC notation, bars:beats:ticks
+    formatSixteenths = (sixteenths) => MPCConverter.formatMpcLength(sixteenths * SIXTEENTH_PULSES);
 
     render() {
-    const { track, trackNum, toneTrack, toneMidi, selected, onToggleSelect, lengthSixteenths, onLengthChange, includeXtm } = this.props;
-        const { selectedRange, isConverting } = this.state;
-        
-        console.log(`Rendering track ${trackNum}:`, track);
-        
+    const { track, trackNum, toneTrack, toneMidi, selected, onToggleSelect, converter, range, selection, onSelectionChange, totalSixteenths, includeXtm } = this.props;
+        const { isConverting } = this.state;
+
         if (!track) {
             return (
                 <div className="track-component empty">
@@ -149,7 +103,10 @@ export class TrackComponent extends Component {
         }
 
     const stats = this.getTrackStats();
-    const hasSelection = selectedRange.start !== selectedRange.end;
+    const hasSelection = !!selection;
+    const patternNoteCount = converter && range
+        ? converter.convertRangeToMPC(this.props.midiTrackIndex, range.start * SIXTEENTH_PULSES, range.end * SIXTEENTH_PULSES).pattern.events.length
+        : 0;
     // Fix: get midiArrayBuffer from props
     const { midiArrayBuffer } = this.props;
 
@@ -240,9 +197,13 @@ export class TrackComponent extends Component {
                                     <span className="stat">
                                         Range: {this.formatNoteName(stats.pitchRange.min)} - {this.formatNoteName(stats.pitchRange.max)}
                                     </span>
-                                    <span className="stat">
-                                        Duration: {this.formatTime(stats.timeRange.duration)}
-                                    </span>
+                                    {converter && (
+                                        <span className="stat">
+                                            Duration: {MPCConverter.formatMpcLength(
+                                                converter.toMpcPulses(stats.timeRange.end) - converter.toMpcPulses(stats.timeRange.start)
+                                            )}
+                                        </span>
+                                    )}
                                     {track.channel !== undefined && (
                                         <span className="stat">Channel: {track.channel + 1}</span>
                                     )}
@@ -258,56 +219,32 @@ export class TrackComponent extends Component {
                 {stats && stats.noteCount > 0 && (
                     <div className="track-content">
                         <MidiVisualizer
-                            ref={this.visualizerRef}
                             track={track}
-                            onTimeRangeSelect={this.handleTimeRangeSelect}
+                            converter={converter}
+                            totalSixteenths={totalSixteenths}
+                            selection={selection}
+                            onSelectionChange={onSelectionChange}
                         />
                         
                         <div className="track-controls">
-                            <div className="selection-info">
-                                {hasSelection ? (
+                            {range && (
+                                <div className="selection-info">
+                                    <span className="selection-label">
+                                        {hasSelection ? 'Selection' : 'Whole pattern'}:
+                                    </span>
+                                    <span className="mpc-time">
+                                        {this.formatSixteenths(range.start)} – {this.formatSixteenths(range.end)}
+                                    </span>
                                     <span>
-                                        Selection: {this.formatTime(selectedRange.start)} - {this.formatTime(selectedRange.end)}
-                                        ({this.formatTime(selectedRange.end - selectedRange.start)} duration)
+                                        Length <span className="mpc-time">{this.formatSixteenths(range.end - range.start)}</span>
+                                        {' '}({range.end - range.start} × 1/16)
                                     </span>
-                                ) : (
-                                    <span>Click and drag on the timeline to select a range</span>
-                                )}
-                            </div>
-
-                            {onLengthChange && (
-                                <div className="pattern-length">
-                                    <span className="pattern-length-label">Pattern length</span>
-                                    <button
-                                        className="length-step-button"
-                                        onClick={() => onLengthChange(lengthSixteenths - 1)}
-                                        disabled={lengthSixteenths <= 1}
-                                        aria-label="One sixteenth shorter"
-                                    >
-                                        −
-                                    </button>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        step="1"
-                                        value={lengthSixteenths}
-                                        onChange={(event) => onLengthChange(event.target.value)}
-                                        aria-label="Pattern length in sixteenths"
-                                    />
-                                    <button
-                                        className="length-step-button"
-                                        onClick={() => onLengthChange(lengthSixteenths + 1)}
-                                        aria-label="One sixteenth longer"
-                                    >
-                                        +
-                                    </button>
-                                    <span className="pattern-length-value">
-                                        × 1/16 = {MPCConverter.formatMpcLength(lengthSixteenths * SIXTEENTH_PULSES)}
-                                    </span>
-                                    <span className="pattern-length-hint">
-                                        {includeXtm
-                                            ? 'Used as track length in the .xtm file'
-                                            : 'Only used with "Add matching .xtm track files"'}
+                                    <span>{patternNoteCount} {patternNoteCount === 1 ? 'note' : 'notes'}</span>
+                                    <span className="selection-hint">
+                                        {hasSelection
+                                            ? 'Only notes completely inside the selection are exported.'
+                                            : 'Drag on the timeline to select a range (snaps to sixteenths).'}
+                                        {includeXtm ? ' The length is used as track length in the .xtm.' : ''}
                                     </span>
                                 </div>
                             )}
@@ -330,7 +267,7 @@ export class TrackComponent extends Component {
                                 {hasSelection && (
                                     <button
                                         className="clear-selection-button"
-                                        onClick={() => this.setState({ selectedRange: { start: 0, end: 0 } })}
+                                        onClick={() => onSelectionChange && onSelectionChange(null)}
                                     >
                                         Clear Selection
                                     </button>

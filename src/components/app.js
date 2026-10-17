@@ -19,8 +19,8 @@ export class MidiConverterApp extends Component {
             files: [],
             selected: new Set(),
             includeXtm: false,
-            // Pattern lengths in sixteenths changed by hand, by track key
-            lengthOverrides: {},
+            // Timeline selections in sixteenths ({ start, end }), by track key
+            selections: {},
             pendingLoads: 0,
             errors: [],
             isExporting: false
@@ -87,6 +87,8 @@ export class MidiConverterApp extends Component {
                 this.getTracksWithNotes(midiDocument)
                     .map(({ midiTrackIndex }) => [midiTrackIndex, converter.suggestLengthSixteenths(midiTrackIndex)])
             );
+            // Timeline length: the longest suggestion of the file, rounded up to whole bars
+            entry.gridSixteenths = 16 * Math.max(1, Math.ceil(Math.max(1, ...Object.values(entry.suggestedLengths)) / 16));
 
             this.setState(prev => {
                 const selected = new Set(prev.selected);
@@ -166,14 +168,25 @@ export class MidiConverterApp extends Component {
         this.setSelected(keys, !allSelected);
     };
 
-    getLengthSixteenths = (fileEntry, midiTrackIndex) => {
-        const override = this.state.lengthOverrides[this.trackKey(fileEntry.id, midiTrackIndex)];
-        return override ?? fileEntry.suggestedLengths[midiTrackIndex] ?? 1;
+    /**
+     * Range of a track's pattern in sixteenths: the timeline selection, or from
+     * 0 to the suggested length
+     */
+    getRange = (fileEntry, midiTrackIndex) => {
+        const selection = this.state.selections[this.trackKey(fileEntry.id, midiTrackIndex)];
+        return selection || { start: 0, end: fileEntry.suggestedLengths[midiTrackIndex] ?? 1 };
     };
 
-    setLengthSixteenths = (key, sixteenths) => {
-        const value = Math.max(1, Math.round(Number(sixteenths) || 1));
-        this.setState(prev => ({ lengthOverrides: { ...prev.lengthOverrides, [key]: value } }));
+    setSelection = (key, selection) => {
+        this.setState(prev => {
+            const selections = { ...prev.selections };
+            if (selection) {
+                selections[key] = selection;
+            } else {
+                delete selections[key];
+            }
+            return { selections };
+        });
     };
 
     clearErrors = () => {
@@ -200,14 +213,19 @@ export class MidiConverterApp extends Component {
             .map(({ track, midiTrackIndex }, uiIndex) => ({ track, midiTrackIndex, uiIndex }))
             .filter(({ midiTrackIndex }) => this.state.selected.has(this.trackKey(fileEntry.id, midiTrackIndex)))
             .map(({ track, midiTrackIndex, uiIndex }) => {
-                const pattern = fileEntry.converter.convertFullTrack(midiTrackIndex);
+                const range = this.getRange(fileEntry, midiTrackIndex);
+                const pattern = fileEntry.converter.convertRangeToMPC(
+                    midiTrackIndex,
+                    range.start * SIXTEENTH_PULSES,
+                    range.end * SIXTEENTH_PULSES
+                );
                 const label = tracks.length === 1
                     ? ''
                     : (track.name || toneTracks[uiIndex]?.name || `Track ${uiIndex + 1}`);
                 return {
                     baseName: MPCConverter.buildBaseName(fileEntry.name, label),
                     content: MPCConverter.exportMPCPattern(pattern),
-                    lengthPulses: this.getLengthSixteenths(fileEntry, midiTrackIndex) * SIXTEENTH_PULSES
+                    lengthPulses: (range.end - range.start) * SIXTEENTH_PULSES
                 };
             });
     };
@@ -270,8 +288,10 @@ export class MidiConverterApp extends Component {
                             isOnlyTrack={tracksWithNotes.length === 1}
                             selected={this.state.selected.has(this.trackKey(fileEntry.id, midiTrackIndex))}
                             onToggleSelect={() => this.toggleTrack(this.trackKey(fileEntry.id, midiTrackIndex))}
-                            lengthSixteenths={this.getLengthSixteenths(fileEntry, midiTrackIndex)}
-                            onLengthChange={(value) => this.setLengthSixteenths(this.trackKey(fileEntry.id, midiTrackIndex), value)}
+                            range={this.getRange(fileEntry, midiTrackIndex)}
+                            selection={this.state.selections[this.trackKey(fileEntry.id, midiTrackIndex)] || null}
+                            onSelectionChange={(selection) => this.setSelection(this.trackKey(fileEntry.id, midiTrackIndex), selection)}
+                            totalSixteenths={fileEntry.gridSixteenths}
                             includeXtm={this.state.includeXtm}
                             midiArrayBuffer={midiArrayBuffer}
                             toneTrack={toneTrack}
@@ -444,8 +464,8 @@ export class MidiConverterApp extends Component {
                     <ul>
                         <li>You can load several MIDI files at once. Tick the tracks you want and download them together as one ZIP file.</li>
                         <li>With &quot;Add matching .xtm track files&quot;, the ZIP also contains an empty MPC track file per pattern with the same name. Load the .xtm on the MPC first, then the .mpcpattern into that track: when you save it as an arp pattern, the name is already filled in. The .xtm itself contains no notes.</li>
-                        <li>Each .xtm also sets the track length to the &quot;Pattern length&quot; of its track, in sixteenths. It is suggested from the notes (last note start plus the usual step between notes) and can be changed per track.</li>
-                        <li>You can select a subset of a track to extract by clicking and dragging on the timeline.</li>
+                        <li>Drag on a timeline to select a range; it snaps to sixteenths. The pattern then starts at the beginning of the selection and only contains notes that lie completely inside it, for the single download and the ZIP. Its length becomes the track length in the .xtm.</li>
+                        <li>Without a selection, a pattern runs from the start to a suggested length: the last note start plus the usual step between notes.</li>
                         <li>At present, the program only converts Note On/Note Off events.</li>
                         <li>The MIDI file you choose and the MPC pattern files are processed entirely on your computer. No data is sent elsewhere.</li>
                         <li>MPC pattern files can be imported into Akai Force, MPC Live, MPC X, and other compatible devices.</li>

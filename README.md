@@ -7,13 +7,13 @@ A web-based application that converts MIDI files to MPC pattern format (.mpcpatt
 - **MIDI File Support**: Load and parse standard MIDI files (.mid, .midi)
 - **Multiple Files**: Load several MIDI files at once, each shown in its own section
 - **Visual Timeline**: Interactive graphical display of MIDI tracks with note visualization
-- **Time Selection**: Click and drag to select specific time ranges for conversion
+- **Time Selection**: Click and drag on a sixteenth-note grid to select the range of a pattern
 - **Multi-Track Support**: Convert individual tracks or entire MIDI files
 - **MPC Pattern Export**: Generate .mpcpattern files compatible with Akai devices
 - **Meaningful File Names**: Patterns are named after the MIDI file (and track), not "Track_1"
 - **ZIP Export**: Tick the tracks you want and download all their patterns as one ZIP file
 - **Matching .xtm Track Files**: Optionally add an empty MPC track file per pattern, so the MPC suggests the right name when you save the pattern as a custom arp pattern
-- **Pattern Length**: Each .xtm carries the track length, suggested from the notes and adjustable per track in sixteenths
+- **Pattern Length**: Each .xtm carries the track length: the selection, or a length suggested from the notes
 - **Real-time Preview**: See notes, velocities, and timing information
 - **Drag & Drop**: Easy file loading with drag and drop support
 
@@ -81,9 +81,13 @@ The built files will be in the `docs/` directory, which the GitHub Pages workflo
    - Notes are shown as horizontal bars with color indicating velocity
    - Track information includes note count, pitch range, and duration
 
-3. **Select Time Range** (Optional):
-   - Click and drag on the timeline to select a specific portion
-   - Only the selected range will be converted to MPC format
+3. **Select a Range** (Optional):
+   - Click and drag on the timeline; the selection snaps to sixteenths and stays within the timeline
+   - The timeline shows bar, beat and sixteenth lines and reaches at least to the end of the suggested pattern, rounded up to whole bars
+   - The pattern starts at the beginning of the selection (step 1 is at 0:0:0) and only contains notes that lie completely inside it
+   - Below the timeline, the range and its length are shown in MPC notation, e.g. `Selection: 0:0:24 – 0:1:0  Length 0:0:72 (3 × 1/16)`, together with the number of notes
+   - Without a selection, the pattern runs from 0:0:0 to the suggested length: the last note start plus the most common step between note starts, never shorter than the end of the last note, rounded up to a whole sixteenth
+   - Click without dragging or use "Clear Selection" to go back to the whole pattern
 
 4. **Download a Single Pattern**:
    - Click "Download pattern" (or "Download selection as pattern") on any track
@@ -92,13 +96,9 @@ The built files will be in the `docs/` directory, which the GitHub Pages workflo
 5. **Download Several Patterns as ZIP**:
    - Every track has an "Include in ZIP" checkbox; each file has one for all of its tracks, and "Select all" covers everything. Newly loaded files are fully selected
    - Click "Download N patterns as ZIP" to get `mpc-patterns.zip`
-   - The ZIP always contains whole tracks; a time selection only applies to the single-pattern download
+   - The ZIP uses the same range per track as the single download: the selection, or the whole pattern
    - Tick "Add matching .xtm track files" to also get an empty MPC track file for every pattern (see below)
-
-6. **Set the Pattern Length** (for .xtm files):
-   - Every track shows a "Pattern length" in sixteenths, with the MPC notation next to it (e.g. `16 × 1/16 = 1:0:0`, `6 × 1/16 = 0:1:48`)
-   - The suggestion is the last note start plus the most common step between note starts, never shorter than the end of the last note, rounded up to a whole sixteenth
-   - Change it with −/+ or by typing a number; it only affects the .xtm files
+   - The length of the range becomes the track length in the .xtm (e.g. `1:0:0` = 3840, `0:1:48` = 1440 pulses)
 
 ### File Names
 
@@ -173,7 +173,7 @@ The .xtm files contain no notes, because the MPC ignores note events when it loa
 
 - Only Note On/Note Off events are converted
 - Other MIDI events (controllers, program changes, etc.) are not included in MPC patterns
-- Time selection is currently track-specific and not used for the ZIP export
+- Time selection is per track
 - The .xtm template was saved with MPC 3.9.1.2; other firmware versions have not been tested
 - Pattern lengths are whole sixteenths and assume 4/4 for the bars:beats:ticks display
 - Maximum file size limited by browser memory

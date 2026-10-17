@@ -263,16 +263,56 @@ export class MPCConverter {
     }
 
     /**
-     * Convert a whole track, aligned to the earliest note of the document
+     * MIDI ticks to MPC pulses, relative to the earliest note of the document.
+     * Call calcTimeBounds() first.
      */
-    convertFullTrack(midiTrackIndex) {
+    toMpcPulses(ticks) {
+        const midiPPQ = this.midi.ticksPerQuarter || 480;
+        return Math.round(MPC_PPQ * (ticks - this.lowTicks) / midiPPQ);
+    }
+
+    /**
+     * Convert the notes of a track that lie completely within
+     * [startPulses, endPulses] (MPC pulses relative to the earliest note of the
+     * document). The pattern starts at startPulses, so the first step is at 0.
+     */
+    convertRangeToMPC(midiTrackIndex, startPulses, endPulses) {
         this.calcTimeBounds();
-        return this.convertTrackToMPC(midiTrackIndex + 1, this.lowTicks, this.highTicks + 1, this.lowTicks);
+        const track = this.midi.tracks[midiTrackIndex];
+        if (!track) {
+            throw new Error(`Track ${midiTrackIndex + 1} not found`);
+        }
+
+        const events = (track.notes || [])
+            .map(note => ({
+                note,
+                start: this.toMpcPulses(note.time),
+                end: this.toMpcPulses(note.time + note.duration)
+            }))
+            .filter(({ start, end }) => start >= startPulses && end <= endPulses)
+            .sort((a, b) => a.start - b.start)
+            .map(({ note, start, end }) => ({
+                type: 2,
+                time: start - startPulses,
+                len: end - start,
+                "1": note.midi,
+                "2": formatVelocity(note.velocity),
+                "3": 0,
+                mod: 0,
+                modVal: 0.5
+            }));
+
+        return {
+            pattern: {
+                length: 9223372036854775807, // eslint-disable-line no-loss-of-precision
+                events
+            }
+        };
     }
 
     /**
      * Suggested pattern length in sixteenths for a whole track, relative to the
-     * earliest note of the document (like convertFullTrack).
+     * earliest note of the document (like convertRangeToMPC).
      *
      * An arp pattern is a grid of steps, so the length is the last note start
      * plus the most common distance between note starts, but never shorter
@@ -286,11 +326,8 @@ export class MPCConverter {
             return 1;
         }
 
-        const midiPPQ = this.midi.ticksPerQuarter || 480;
-        const toMpc = (ticks) => Math.round(MPC_PPQ * (ticks - this.lowTicks) / midiPPQ);
-
-        const starts = [...new Set(notes.map(note => toMpc(note.time)))].sort((a, b) => a - b);
-        const lastEnd = Math.max(...notes.map(note => toMpc(note.time + note.duration)));
+        const starts = [...new Set(notes.map(note => this.toMpcPulses(note.time)))].sort((a, b) => a - b);
+        const lastEnd = Math.max(...notes.map(note => this.toMpcPulses(note.time + note.duration)));
 
         // Most common distance between note starts; the smaller one wins a tie
         const counts = new Map();
@@ -326,6 +363,15 @@ export class MPCConverter {
 // MPC patterns and track files use 960 pulses per quarter note
 export const MPC_PPQ = 960;
 export const SIXTEENTH_PULSES = MPC_PPQ / 4;
+
+/**
+ * MIDI velocity (0-127) as the 0-1 value string of an MPC note event,
+ * cut to 17 characters like the original converter
+ */
+function formatVelocity(velocity) {
+    const value = (velocity / 127).toString(10);
+    return value.length > 17 ? value.substring(0, 17) : value;
+}
 
 /**
  * Trigger a browser download for a blob
