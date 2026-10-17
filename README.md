@@ -2,12 +2,17 @@
 
 A web-based application that converts MIDI files to MPC pattern format (.mpcpattern) for Akai Force and other Akai products. This project has been unminified and restructured from the original by [Catnip/Jamie Faye Fenton (Fentonia)](https://www.fentonia.com/catnip/midianmpc/index.html) into a modular, maintainable codebase.
 
+This is a fork of [miathedev/medianmpc](https://github.com/miathedev/medianmpc) that adds loading several files, a ZIP export, sixteenth-snapped selections and .xtm track files for saving custom arp patterns on the MPC.
+
+- **Use it online**: https://codmpm.github.io/medianmpc/
+- **Current version**: 0.1.0, see the [changelog](CHANGELOG.md). The version is also shown on the website.
+
 ## Features
 
 - **MIDI File Support**: Load and parse standard MIDI files (.mid, .midi)
 - **Multiple Files**: Load several MIDI files at once, each shown in its own section
 - **Visual Timeline**: Interactive graphical display of MIDI tracks with note visualization
-- **Time Selection**: Click and drag on a sixteenth-note grid to select the range of a pattern
+- **Time Selection**: Click and drag on a timeline with bar, beat and sixteenth lines to select the range of a pattern; it snaps to sixteenths
 - **Multi-Track Support**: Convert individual tracks or entire MIDI files
 - **MPC Pattern Export**: Generate .mpcpattern files compatible with Akai devices
 - **Meaningful File Names**: Patterns are named after the MIDI file (and track), not "Track_1"
@@ -46,9 +51,9 @@ src/
 ## Installation
 
 1. Clone or download the project files
-2. Install dependencies:
+2. Install dependencies (Node.js 22.15 or newer):
 ```bash
-npm install
+npm ci
 ```
 
 ## Development
@@ -58,7 +63,9 @@ Start the development server:
 npm run dev
 ```
 
-This will start a webpack dev server at `http://localhost:8080/medianmpc/` with hot reloading enabled.
+This will start a webpack dev server at `http://localhost:8080/medianmpc/` with hot reloading enabled and open it in the browser.
+
+On macOS you can also double-click `medianmpc.command` in Finder (or an alias of it on the desktop). It starts the dev server from the project folder, or only opens the browser if the app is already running.
 
 ## Building for Production
 
@@ -68,6 +75,20 @@ npm run build
 ```
 
 The built files will be in the `docs/` directory, which the GitHub Pages workflow deploys.
+
+## Versions and Releases
+
+- The version lives in `package.json` and is shown on the website (injected at build time).
+- Every release gets an entry in [CHANGELOG.md](CHANGELOG.md) and a git tag `vX.Y.Z` on `main`.
+- Versions stay at 0.x while the features are still being tried out on the MPC.
+
+To release a new version:
+
+1. Add the changes under a new version heading in `CHANGELOG.md`
+2. Set the version without creating a tag yet: `npm version 0.2.0 --no-git-tag-version`
+3. Commit, merge into `main`, then tag and push: `git tag -a v0.2.0 -m "v0.2.0"` and `git push origin main v0.2.0`
+
+Pushing `main` deploys the website through GitHub Pages.
 
 ## Usage
 
@@ -189,9 +210,9 @@ To contribute to this project:
 
 ## Credits
 
-The original converter was written by [Catnip/Jamie Faye Fenton (Fentonia)](https://www.fentonia.com/catnip/midianmpc/index.html) and restructured into this codebase by [miathedev](https://github.com/miathedev/medianmpc).
+The original converter was written by [Catnip/Jamie Faye Fenton (Fentonia)](https://www.fentonia.com/catnip/midianmpc/index.html) and restructured into this codebase by [miathedev](https://github.com/miathedev/medianmpc). This fork lives at [codmpm/medianmpc](https://github.com/codmpm/medianmpc).
 
-The multi-file loading, the file naming, the ZIP export with track selection, the matching .xtm track files and the pattern length were developed together with [Claude](https://claude.com/claude-code), Anthropic's AI assistant, using Claude Code.
+The multi-file loading, the file naming, the ZIP export with track selection, the sixteenth-snapped selections and pattern length, the matching .xtm track files and the dependency cleanup were developed together with [Claude](https://claude.com/claude-code), Anthropic's AI assistant, using Claude Code.
 
 ## License
 

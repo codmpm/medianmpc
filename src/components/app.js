@@ -12,6 +12,9 @@ import { Midi } from '@tonejs/midi';
 import { zipSync, strToU8 } from 'fflate';
 import { loadXtmTemplate, buildXtm } from '../converter/xtm-builder.js';
 
+// Set from package.json at build time (webpack DefinePlugin)
+const APP_VERSION = __APP_VERSION__;
+
 export class MidiConverterApp extends Component {
     constructor(props) {
         super(props);
@@ -375,15 +378,18 @@ export class MidiConverterApp extends Component {
                 <div className="app-header">
                     <h1>MIDI to MPC Pattern Converter</h1>
                     <p className="app-description">
-                        Convert MIDI files to MPC pattern format for Akai Force and other Akai products.
-                        Select one or more MIDI files, choose the tracks and time ranges you want to convert,
-                        and download the resulting MPC pattern files.
+                        Convert MIDI files to MPC pattern files (.mpcpattern) for Akai MPC and Force devices.
+                        Load one or more MIDI files, pick the tracks and ranges you want, and download the patterns,
+                        optionally with matching .xtm track files for saving them as custom arp patterns.
                     </p>
                     <p className="app-credit" style={{ fontSize: '0.95em', color: '#888', marginTop: '10px' }}>
-                        Based on the original by <a href="https://www.fentonia.com/catnip/midianmpc/index.html" target="_blank" rel="noopener noreferrer">Catnip/Jamie Faye Fenton (Fentonia)</a>.
+                        Based on the original by <a href="https://www.fentonia.com/catnip/midianmpc/index.html" target="_blank" rel="noopener noreferrer">Catnip/Jamie Faye Fenton (Fentonia)</a>,
+                        restructured by <a href="https://github.com/miathedev/medianmpc" target="_blank" rel="noopener noreferrer">miathedev/medianmpc</a>.
                     </p>
                     <p className="app-source" style={{ fontSize: '0.95em', marginTop: '6px' }}>
-                        View this project on <a href="https://github.com/miathedev/medianmpc" target="_blank" rel="noopener noreferrer">GitHub</a>.
+                        This version: <a href="https://github.com/codmpm/medianmpc" target="_blank" rel="noopener noreferrer">codmpm/medianmpc</a> on GitHub
+                        {' · '}
+                        <a href="https://github.com/codmpm/medianmpc/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer" className="app-version">v{APP_VERSION}</a>
                     </p>
                 </div>
 
@@ -460,16 +466,24 @@ export class MidiConverterApp extends Component {
                 {files.map(this.renderFile)}
 
                 <div className="usage-notes">
-                    <h3>Usage Notes</h3>
-                    <ul>
-                        <li>You can load several MIDI files at once. Tick the tracks you want and download them together as one ZIP file.</li>
-                        <li>With &quot;Add matching .xtm track files&quot;, the ZIP also contains an empty MPC track file per pattern with the same name. Load the .xtm on the MPC first, then the .mpcpattern into that track: when you save it as an arp pattern, the name is already filled in. The .xtm itself contains no notes.</li>
-                        <li>Drag on a timeline to select a range; it snaps to sixteenths. The pattern then starts at the beginning of the selection and only contains notes that lie completely inside it, for the single download and the ZIP. Its length becomes the track length in the .xtm.</li>
-                        <li>Without a selection, a pattern runs from the start to a suggested length: the last note start plus the usual step between notes.</li>
-                        <li>At present, the program only converts Note On/Note Off events.</li>
-                        <li>The MIDI file you choose and the MPC pattern files are processed entirely on your computer. No data is sent elsewhere.</li>
-                        <li>MPC pattern files can be imported into Akai Force, MPC Live, MPC X, and other compatible devices.</li>
+                    <h3>How to Use</h3>
+                    <ol>
+                        <li>Load one or more MIDI files by drag &amp; drop or with &quot;Choose MIDI Files&quot;. Everything runs in your browser; no data is sent anywhere.</li>
+                        <li>Every track with notes is shown on a timeline with bar, beat and sixteenth lines. Drag on it to select a range; the selection snaps to sixteenths. Without a selection, the pattern runs from the start to a suggested length: the last note start plus the usual step between notes.</li>
+                        <li>A pattern starts at the beginning of its range and contains only the notes that lie completely inside it. Range, length and note count are shown below the timeline in MPC notation (bars:beats:ticks).</li>
+                        <li>&quot;Download pattern&quot; saves a single track. For several tracks, tick &quot;Include in ZIP&quot; and use &quot;Download N patterns as ZIP&quot;.</li>
                         <li>Patterns are named after the MIDI file. Files with several tracks get one pattern per track, named &quot;&lt;file&gt; - &lt;track&gt;.mpcpattern&quot;.</li>
+                    </ol>
+                    <h3>Saving Custom Arp Patterns on the MPC</h3>
+                    <ol>
+                        <li>Tick &quot;Add matching .xtm track files&quot; before downloading the ZIP. It then contains an empty MPC track file next to every pattern, with the same name and the pattern&apos;s length as track length.</li>
+                        <li>On the MPC, load the .xtm first, then load the .mpcpattern into that track.</li>
+                        <li>Save the track as an arp pattern: name and length are already set. The .xtm contains no notes; the MPC ignores notes in track files.</li>
+                    </ol>
+                    <h3>Notes</h3>
+                    <ul>
+                        <li>Only Note On/Note Off events are converted.</li>
+                        <li>MPC pattern files can be imported into Akai Force, MPC Live, MPC X, MPC One and other compatible devices. The .xtm template was saved with MPC 3.9.1.2.</li>
                     </ul>
                 </div>
             </div>

@@ -458,9 +458,14 @@ div.selbox {
     color: #495057;
 }
 
-.usage-notes ul {
+.usage-notes ul,
+.usage-notes ol {
     color: #6c757d;
     line-height: 1.6;
+}
+
+.usage-notes h3:not(:first-child) {
+    margin-top: 25px;
 }
 
 .usage-notes li {
