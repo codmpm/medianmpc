@@ -5,7 +5,7 @@
 
 import React, { Component } from 'react';
 import { MidiVisualizer } from './midi-visualizer.js';
-import { MPCConverter, downloadBlob } from '../converter/mpc-converter.js';
+import { MPCConverter, SIXTEENTH_PULSES, downloadBlob } from '../converter/mpc-converter.js';
 import { MidiPlayer } from './midi-player.js';
 import { getGeneralMidiInstrumentName } from '../midi/midi-utils.js';
 
@@ -134,7 +134,7 @@ export class TrackComponent extends Component {
     };
 
     render() {
-    const { track, trackNum, toneTrack, toneMidi, selected, onToggleSelect } = this.props;
+    const { track, trackNum, toneTrack, toneMidi, selected, onToggleSelect, lengthSixteenths, onLengthChange, includeXtm } = this.props;
         const { selectedRange, isConverting } = this.state;
         
         console.log(`Rendering track ${trackNum}:`, track);
@@ -274,7 +274,44 @@ export class TrackComponent extends Component {
                                     <span>Click and drag on the timeline to select a range</span>
                                 )}
                             </div>
-                            
+
+                            {onLengthChange && (
+                                <div className="pattern-length">
+                                    <span className="pattern-length-label">Pattern length</span>
+                                    <button
+                                        className="length-step-button"
+                                        onClick={() => onLengthChange(lengthSixteenths - 1)}
+                                        disabled={lengthSixteenths <= 1}
+                                        aria-label="One sixteenth shorter"
+                                    >
+                                        −
+                                    </button>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        step="1"
+                                        value={lengthSixteenths}
+                                        onChange={(event) => onLengthChange(event.target.value)}
+                                        aria-label="Pattern length in sixteenths"
+                                    />
+                                    <button
+                                        className="length-step-button"
+                                        onClick={() => onLengthChange(lengthSixteenths + 1)}
+                                        aria-label="One sixteenth longer"
+                                    >
+                                        +
+                                    </button>
+                                    <span className="pattern-length-value">
+                                        × 1/16 = {MPCConverter.formatMpcLength(lengthSixteenths * SIXTEENTH_PULSES)}
+                                    </span>
+                                    <span className="pattern-length-hint">
+                                        {includeXtm
+                                            ? 'Used as track length in the .xtm file'
+                                            : 'Only used with "Add matching .xtm track files"'}
+                                    </span>
+                                </div>
+                            )}
+
                             <div className="action-buttons">
                                 <button 
                                     className="mpc-button"

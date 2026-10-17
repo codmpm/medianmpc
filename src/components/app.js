@@ -7,7 +7,7 @@ import React, { Component } from 'react';
 import { FileWidget } from './file-widget.js';
 import { TrackComponent, MidiHeader } from './track-component.js';
 import { MidiDocument } from '../midi/midi-utils.js';
-import { MPCConverter, downloadBlob } from '../converter/mpc-converter.js';
+import { MPCConverter, SIXTEENTH_PULSES, downloadBlob } from '../converter/mpc-converter.js';
 import { Midi } from '@tonejs/midi';
 import { zipSync, strToU8 } from 'fflate';
 import { loadXtmTemplate, buildXtm } from '../converter/xtm-builder.js';
@@ -19,6 +19,8 @@ export class MidiConverterApp extends Component {
             files: [],
             selected: new Set(),
             includeXtm: false,
+            // Pattern lengths in sixteenths changed by hand, by track key
+            lengthOverrides: {},
             pendingLoads: 0,
             errors: [],
             isExporting: false
@@ -80,6 +82,11 @@ export class MidiConverterApp extends Component {
                 converter,
                 midiArrayBuffer: data
             };
+            // Suggested pattern length in sixteenths, by MIDI track index
+            entry.suggestedLengths = Object.fromEntries(
+                this.getTracksWithNotes(midiDocument)
+                    .map(({ midiTrackIndex }) => [midiTrackIndex, converter.suggestLengthSixteenths(midiTrackIndex)])
+            );
 
             this.setState(prev => {
                 const selected = new Set(prev.selected);
@@ -159,6 +166,16 @@ export class MidiConverterApp extends Component {
         this.setSelected(keys, !allSelected);
     };
 
+    getLengthSixteenths = (fileEntry, midiTrackIndex) => {
+        const override = this.state.lengthOverrides[this.trackKey(fileEntry.id, midiTrackIndex)];
+        return override ?? fileEntry.suggestedLengths[midiTrackIndex] ?? 1;
+    };
+
+    setLengthSixteenths = (key, sixteenths) => {
+        const value = Math.max(1, Math.round(Number(sixteenths) || 1));
+        this.setState(prev => ({ lengthOverrides: { ...prev.lengthOverrides, [key]: value } }));
+    };
+
     clearErrors = () => {
         this.setState({ errors: [] });
     };
@@ -189,7 +206,8 @@ export class MidiConverterApp extends Component {
                     : (track.name || toneTracks[uiIndex]?.name || `Track ${uiIndex + 1}`);
                 return {
                     baseName: MPCConverter.buildBaseName(fileEntry.name, label),
-                    content: MPCConverter.exportMPCPattern(pattern)
+                    content: MPCConverter.exportMPCPattern(pattern),
+                    lengthPulses: this.getLengthSixteenths(fileEntry, midiTrackIndex) * SIXTEENTH_PULSES
                 };
             });
     };
@@ -200,7 +218,7 @@ export class MidiConverterApp extends Component {
         try {
             const xtmTemplate = includeXtm ? await loadXtmTemplate() : null;
             const zipEntries = {};
-            files.flatMap(this.buildPatternFiles).forEach(({ baseName, content }) => {
+            files.flatMap(this.buildPatternFiles).forEach(({ baseName, content, lengthPulses }) => {
                 // Same MIDI file name loaded twice: keep both patterns
                 let uniqueName = baseName;
                 for (let n = 2; zipEntries[`${uniqueName}.mpcpattern`]; n++) {
@@ -208,7 +226,7 @@ export class MidiConverterApp extends Component {
                 }
                 zipEntries[`${uniqueName}.mpcpattern`] = strToU8(content);
                 if (xtmTemplate) {
-                    zipEntries[`${uniqueName}.xtm`] = buildXtm(xtmTemplate, uniqueName);
+                    zipEntries[`${uniqueName}.xtm`] = buildXtm(xtmTemplate, uniqueName, lengthPulses);
                 }
             });
 
@@ -252,6 +270,9 @@ export class MidiConverterApp extends Component {
                             isOnlyTrack={tracksWithNotes.length === 1}
                             selected={this.state.selected.has(this.trackKey(fileEntry.id, midiTrackIndex))}
                             onToggleSelect={() => this.toggleTrack(this.trackKey(fileEntry.id, midiTrackIndex))}
+                            lengthSixteenths={this.getLengthSixteenths(fileEntry, midiTrackIndex)}
+                            onLengthChange={(value) => this.setLengthSixteenths(this.trackKey(fileEntry.id, midiTrackIndex), value)}
+                            includeXtm={this.state.includeXtm}
                             midiArrayBuffer={midiArrayBuffer}
                             toneTrack={toneTrack}
                             toneMidi={toneMidi}
@@ -423,6 +444,7 @@ export class MidiConverterApp extends Component {
                     <ul>
                         <li>You can load several MIDI files at once. Tick the tracks you want and download them together as one ZIP file.</li>
                         <li>With &quot;Add matching .xtm track files&quot;, the ZIP also contains an empty MPC track file per pattern with the same name. Load the .xtm on the MPC first, then the .mpcpattern into that track: when you save it as an arp pattern, the name is already filled in. The .xtm itself contains no notes.</li>
+                        <li>Each .xtm also sets the track length to the &quot;Pattern length&quot; of its track, in sixteenths. It is suggested from the notes (last note start plus the usual step between notes) and can be changed per track.</li>
                         <li>You can select a subset of a track to extract by clicking and dragging on the timeline.</li>
                         <li>At present, the program only converts Note On/Note Off events.</li>
                         <li>The MIDI file you choose and the MPC pattern files are processed entirely on your computer. No data is sent elsewhere.</li>

@@ -269,7 +269,63 @@ export class MPCConverter {
         this.calcTimeBounds();
         return this.convertTrackToMPC(midiTrackIndex + 1, this.lowTicks, this.highTicks + 1, this.lowTicks);
     }
+
+    /**
+     * Suggested pattern length in sixteenths for a whole track, relative to the
+     * earliest note of the document (like convertFullTrack).
+     *
+     * An arp pattern is a grid of steps, so the length is the last note start
+     * plus the most common distance between note starts, but never shorter
+     * than the end of the last note. Rounded up to whole sixteenths.
+     */
+    suggestLengthSixteenths(midiTrackIndex) {
+        this.calcTimeBounds();
+        const track = this.midi.tracks[midiTrackIndex];
+        const notes = track?.notes || [];
+        if (notes.length === 0) {
+            return 1;
+        }
+
+        const midiPPQ = this.midi.ticksPerQuarter || 480;
+        const toMpc = (ticks) => Math.round(MPC_PPQ * (ticks - this.lowTicks) / midiPPQ);
+
+        const starts = [...new Set(notes.map(note => toMpc(note.time)))].sort((a, b) => a - b);
+        const lastEnd = Math.max(...notes.map(note => toMpc(note.time + note.duration)));
+
+        // Most common distance between note starts; the smaller one wins a tie
+        const counts = new Map();
+        for (let i = 1; i < starts.length; i++) {
+            const distance = starts[i] - starts[i - 1];
+            counts.set(distance, (counts.get(distance) || 0) + 1);
+        }
+        let step = 0;
+        let stepCount = 0;
+        counts.forEach((count, distance) => {
+            if (count > stepCount || (count === stepCount && distance < step)) {
+                step = distance;
+                stepCount = count;
+            }
+        });
+
+        const length = Math.max(starts[starts.length - 1] + step, lastEnd);
+        return Math.max(1, Math.ceil(length / SIXTEENTH_PULSES));
+    }
+
+    /**
+     * Format a length in MPC pulses like the MPC does: bars:beats:ticks
+     * (4/4, 96 display ticks per beat)
+     */
+    static formatMpcLength(pulses) {
+        const bars = Math.floor(pulses / (4 * MPC_PPQ));
+        const beats = Math.floor((pulses % (4 * MPC_PPQ)) / MPC_PPQ);
+        const ticks = Math.round(((pulses % MPC_PPQ) * 96) / MPC_PPQ);
+        return `${bars}:${beats}:${ticks}`;
+    }
 }
+
+// MPC patterns and track files use 960 pulses per quarter note
+export const MPC_PPQ = 960;
+export const SIXTEENTH_PULSES = MPC_PPQ / 4;
 
 /**
  * Trigger a browser download for a blob

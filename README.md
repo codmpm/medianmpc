@@ -13,6 +13,7 @@ A web-based application that converts MIDI files to MPC pattern format (.mpcpatt
 - **Meaningful File Names**: Patterns are named after the MIDI file (and track), not "Track_1"
 - **ZIP Export**: Tick the tracks you want and download all their patterns as one ZIP file
 - **Matching .xtm Track Files**: Optionally add an empty MPC track file per pattern, so the MPC suggests the right name when you save the pattern as a custom arp pattern
+- **Pattern Length**: Each .xtm carries the track length, suggested from the notes and adjustable per track in sixteenths
 - **Real-time Preview**: See notes, velocities, and timing information
 - **Drag & Drop**: Easy file loading with drag and drop support
 
@@ -94,6 +95,11 @@ The built files will be in the `docs/` directory, which the GitHub Pages workflo
    - The ZIP always contains whole tracks; a time selection only applies to the single-pattern download
    - Tick "Add matching .xtm track files" to also get an empty MPC track file for every pattern (see below)
 
+6. **Set the Pattern Length** (for .xtm files):
+   - Every track shows a "Pattern length" in sixteenths, with the MPC notation next to it (e.g. `16 × 1/16 = 1:0:0`, `6 × 1/16 = 0:1:48`)
+   - The suggestion is the last note start plus the most common step between note starts, never shorter than the end of the last note, rounded up to a whole sixteenth
+   - Change it with −/+ or by typing a number; it only affects the .xtm files
+
 ### File Names
 
 - A MIDI file with one track with notes becomes `<file name>.mpcpattern`
@@ -107,7 +113,7 @@ When you save a track as an arp pattern on the MPC, you have to type in the name
 1. Download the patterns as ZIP with "Add matching .xtm track files" ticked
 2. On the MPC, load `<name>.xtm`. This creates a track called `<name>`
 3. Load `<name>.mpcpattern` into that track
-4. Save the track as an arp pattern: the name is already filled in
+4. Save the track as an arp pattern: the name and the track length are already set
 
 The .xtm files contain no notes, because the MPC ignores note events when it loads a track file. The notes always come from the .mpcpattern.
 
@@ -158,7 +164,8 @@ The .xtm files contain no notes, because the MPC ignores note events when it loa
 
 ### Output: MPC Track Files (.xtm, optional)
 - Gzip-compressed text: a short header (`ACVS`, MPC version, `SerialisableTrackData`, `json`, OS) followed by JSON
-- Built from an empty track saved by MPC 3.9.1.2; only the track and program name are replaced
+- Built from an empty track saved by MPC 3.9.1.2; only the track and program name and the track length are replaced
+- Track length: `length` and the `loopEndPulses` of all clips are set to the pattern length (960 pulses per quarter note), and `lengthFollowsSequenceLength` is switched off, the same way the MPC saves a track with its own length
 - The template contains no samples, file paths or device IDs
 - The JSON is edited as text, because a JSON round trip in the browser would turn values like `1.0` into `1` and round the pattern length `9223372036854775807`
 
@@ -168,6 +175,7 @@ The .xtm files contain no notes, because the MPC ignores note events when it loa
 - Other MIDI events (controllers, program changes, etc.) are not included in MPC patterns
 - Time selection is currently track-specific and not used for the ZIP export
 - The .xtm template was saved with MPC 3.9.1.2; other firmware versions have not been tested
+- Pattern lengths are whole sixteenths and assume 4/4 for the bars:beats:ticks display
 - Maximum file size limited by browser memory
 
 ## Contributing
@@ -183,7 +191,7 @@ To contribute to this project:
 
 The original converter was written by [Catnip/Jamie Faye Fenton (Fentonia)](https://www.fentonia.com/catnip/midianmpc/index.html) and restructured into this codebase by [miathedev](https://github.com/miathedev/medianmpc).
 
-The multi-file loading, the file naming, the ZIP export with track selection and the matching .xtm track files were developed together with [Claude](https://claude.com/claude-code), Anthropic's AI assistant, using Claude Code.
+The multi-file loading, the file naming, the ZIP export with track selection, the matching .xtm track files and the pattern length were developed together with [Claude](https://claude.com/claude-code), Anthropic's AI assistant, using Claude Code.
 
 ## License
 
