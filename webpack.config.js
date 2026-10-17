@@ -1,9 +1,12 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
+import webpack from 'webpack';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const { version } = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
 
 export default (env, argv) => {
   const isProduction = argv.mode === 'production';
@@ -68,6 +71,9 @@ export default (env, argv) => {
       ]
     },
     plugins: [
+      new webpack.DefinePlugin({
+        __APP_VERSION__: JSON.stringify(version)
+      }),
       new HtmlWebpackPlugin({
         template: './public/index.html',
         filename: 'index.html',
