@@ -263,21 +263,20 @@ export class MPCConverter {
     }
 
     /**
-     * MIDI ticks to MPC pulses, relative to the earliest note of the document.
-     * Call calcTimeBounds() first.
+     * MIDI ticks to MPC pulses, measured from the start of the MIDI file, so a
+     * rest before the first note stays part of the pattern
      */
     toMpcPulses(ticks) {
         const midiPPQ = this.midi.ticksPerQuarter || 480;
-        return Math.round(MPC_PPQ * (ticks - this.lowTicks) / midiPPQ);
+        return Math.round(MPC_PPQ * ticks / midiPPQ);
     }
 
     /**
      * Convert the notes of a track that lie completely within
-     * [startPulses, endPulses] (MPC pulses relative to the earliest note of the
-     * document). The pattern starts at startPulses, so the first step is at 0.
+     * [startPulses, endPulses] (MPC pulses from the start of the MIDI file).
+     * The pattern starts at startPulses, so the first step is at 0.
      */
     convertRangeToMPC(midiTrackIndex, startPulses, endPulses) {
-        this.calcTimeBounds();
         const track = this.midi.tracks[midiTrackIndex];
         if (!track) {
             throw new Error(`Track ${midiTrackIndex + 1} not found`);
@@ -311,15 +310,14 @@ export class MPCConverter {
     }
 
     /**
-     * Suggested pattern length in sixteenths for a whole track, relative to the
-     * earliest note of the document (like convertRangeToMPC).
+     * Suggested pattern length in sixteenths for a whole track, measured from
+     * the start of the MIDI file (like convertRangeToMPC).
      *
      * An arp pattern is a grid of steps, so the length is the last note start
      * plus the most common distance between note starts, but never shorter
      * than the end of the last note. Rounded up to whole sixteenths.
      */
     suggestLengthSixteenths(midiTrackIndex) {
-        this.calcTimeBounds();
         const track = this.midi.tracks[midiTrackIndex];
         const notes = track?.notes || [];
         if (notes.length === 0) {

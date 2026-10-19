@@ -7,6 +7,12 @@ features are still being tried out on the MPC.
 
 The version is shown on the website next to the GitHub link.
 
+## [Unreleased]
+
+### Fixed
+
+- A rest before the first note was dropped: patterns and the timeline started at the first note instead of the start of the MIDI file, so the first note always landed on step 1. Positions are now measured from the start of the MIDI file (0:0:0).
+
 ## [0.1.0] - 2026-10-17
 
 First release of this fork of [miathedev/medianmpc](https://github.com/miathedev/medianmpc)

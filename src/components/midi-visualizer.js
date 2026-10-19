@@ -1,8 +1,8 @@
 /**
  * MIDI Visualizer Component
  * Displays a MIDI track on a sixteenth-note grid with div-based rendering and
- * drag selection. Positions are MPC pulses (960 per quarter note) relative to
- * the earliest note of the document, selections are whole sixteenths.
+ * drag selection. Positions are MPC pulses (960 per quarter note) from the
+ * start of the MIDI file, selections are whole sixteenths.
  */
 
 import React, { Component } from 'react';
@@ -51,7 +51,6 @@ class MidiGrid extends Component {
             return;
         }
 
-        converter.calcTimeBounds();
         const minPitch = Math.min(...notes.map(note => note.midi));
         const maxPitch = Math.max(...notes.map(note => note.midi));
 
