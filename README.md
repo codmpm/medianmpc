@@ -5,7 +5,7 @@ A web-based application that converts MIDI files to MPC pattern format (.mpcpatt
 This is a fork of [miathedev/medianmpc](https://github.com/miathedev/medianmpc) that adds loading several files, a ZIP export, sixteenth-snapped selections and .xtm track files for saving custom arp patterns on the MPC.
 
 - **Use it online**: https://codmpm.github.io/medianmpc/
-- **Current version**: 0.1.1, see the [changelog](CHANGELOG.md). The version is also shown on the website.
+- **Current version**: 0.2.0, see the [changelog](CHANGELOG.md). The version is also shown on the website.
 
 ## Features
 
@@ -119,7 +119,7 @@ Pushing `main` deploys the website through GitHub Pages.
    - Every track has an "Include in ZIP" checkbox; each file has one for all of its tracks, and "Select all" covers everything. Newly loaded files are fully selected
    - Click "Download N patterns as ZIP" to get `mpc-patterns.zip`
    - The ZIP uses the same range per track as the single download: the selection, or the whole pattern
-   - Tick "Add matching .xtm track files" to also get an empty MPC track file for every pattern (see below)
+   - "Add matching .xtm track files" is on by default and adds an empty MPC track file for every pattern (see below); untick it to get only the patterns
    - The length of the range becomes the track length in the .xtm (e.g. `1:0:0` = 3840, `0:1:48` = 1440 pulses)
 
 ### File Names
@@ -132,7 +132,7 @@ Pushing `main` deploys the website through GitHub Pages.
 
 When you save a track as an arp pattern on the MPC, you have to type in the name by hand, unless the track already carries the name you want. The matching .xtm track files take care of that:
 
-1. Download the patterns as ZIP with "Add matching .xtm track files" ticked
+1. Download the patterns as ZIP with "Add matching .xtm track files" ticked (the default)
 2. On the MPC, load `<name>.xtm`. This creates a track called `<name>`
 3. Load `<name>.mpcpattern` into that track
 4. Save the track as an arp pattern: the name and the track length are already set

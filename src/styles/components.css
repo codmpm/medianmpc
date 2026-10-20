@@ -1,6 +1,6 @@
 /* MIDI Player Button Styles */
 .midi-play-btn {
-    background-color: #007bff;
+    background-color: #1f3cf0;
     color: white;
     border: none;
     border-radius: 6px;
@@ -8,7 +8,7 @@
     transition: background-color 0.3s ease;
 }
 .midi-play-btn:hover:not(:disabled) {
-    background-color: #0056b3;
+    background-color: #142ab8;
 }
 .midi-play-btn:disabled {
     background-color: #6c757d;
@@ -16,7 +16,7 @@
 }
 
 .midi-stop-btn {
-    background-color: #dc3545;
+    background-color: #212529;
     color: white;
     border: none;
     border-radius: 6px;
@@ -24,11 +24,33 @@
     transition: background-color 0.3s ease;
 }
 .midi-stop-btn:hover:not(:disabled) {
-    background-color: #c82333;
+    background-color: #000;
 }
 .midi-stop-btn:disabled {
-    background-color: #6c757d;
+    background-color: #343a40;
     cursor: not-allowed;
+}
+
+/* These come before .mpc-button / .clear-selection-button in the cascade,
+   so they repeat the class to win */
+.mpc-button.midi-play-btn {
+    background-color: #1f3cf0;
+}
+
+.mpc-button.midi-play-btn:hover:not(:disabled) {
+    background-color: #142ab8;
+}
+
+.mpc-button.midi-play-btn:disabled {
+    background-color: #6c757d;
+}
+
+.clear-selection-button.midi-stop-btn {
+    background-color: #212529;
+}
+
+.clear-selection-button.midi-stop-btn:disabled {
+    background-color: #343a40;
 }
 /* File Widget Styles */
 .file-widget {
@@ -97,20 +119,21 @@
 
 /* MIDI Visualizer Styles */
 .midi-visualizer {
-    margin: 20px 0;
-    border: 1px solid #dee2e6;
-    border-radius: 6px;
+    margin: 0;
+    padding: 12px 0;
+    border-top: 1px solid #b8bdc2;
+    border-bottom: 1px solid #b8bdc2;
     overflow: hidden;
-    background-color: #f8f9fa;
+    background-color: #ced2d6;
 }
 
 /* Original MIDI Grid Styles (from median.css) */
 div.midigrid {
     position: relative;
-    background-color: #E8E8E0;
+    background-color: #b9bba9;
     overflow: hidden;
     cursor: default;
-    border: 1px solid #ccc;
+    border: 1px solid #8f9286;
     min-height: 60px;
 }
 
@@ -123,18 +146,19 @@ div.midiitem {
 }
 
 div.selbox {
-    background-color: gray;
+    background-color: #1f3cf0;
     position: absolute;
-    opacity: 0.2;
+    opacity: 0.25;
     pointer-events: none;
 }
 
 /* Track Component Styles */
 .track-component {
-    margin: 20px 0;
-    border: 1px solid #dee2e6;
+    margin: 12px 0 0 0;
+    border: 1px solid #b8bdc2;
     border-radius: 8px;
     overflow: hidden;
+    background-color: #e4e7ea;
 }
 
 .track-component.empty {
@@ -144,32 +168,30 @@ div.selbox {
 }
 
 .track-header {
-    background-color: #f8f9fa;
-    padding: 15px 20px;
-    border-bottom: 1px solid #dee2e6;
+    padding: 12px 20px;
 }
 
 .track-header h3 {
-    margin: 0 0 10px 0;
-    color: #495057;
+    margin: 0 0 8px 0;
+    color: #212529;
 }
 
 .track-name {
     font-weight: normal;
-    color: #6c757d;
+    color: #343a40;
 }
 
 .track-stats {
     display: flex;
-    gap: 20px;
+    gap: 10px;
     flex-wrap: wrap;
 }
 
 .stat {
     font-size: 14px;
-    color: #6c757d;
-    background-color: #e9ecef;
-    padding: 4px 8px;
+    color: #212529;
+    background-color: #c6cbd0;
+    padding: 3px 8px;
     border-radius: 4px;
 }
 
@@ -178,25 +200,24 @@ div.selbox {
 }
 
 .track-controls {
-    padding: 15px 20px;
-    background-color: #f8f9fa;
-    border-top: 1px solid #dee2e6;
+    padding: 12px 20px;
 }
 
 .selection-info {
-    margin-bottom: 15px;
+    margin-bottom: 12px;
     font-size: 14px;
-    color: #6c757d;
+    color: #343a40;
 }
 
 .action-buttons {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     align-items: center;
 }
 
 .mpc-button {
-    background-color: #28a745;
+    background-color: #138a1f;
     color: white;
     border: none;
     padding: 10px 20px;
@@ -208,7 +229,7 @@ div.selbox {
 }
 
 .mpc-button:hover:not(:disabled) {
-    background-color: #218838;
+    background-color: #0d6a17;
 }
 
 .mpc-button:disabled {
@@ -240,44 +261,54 @@ div.selbox {
 
 /* MIDI Header Styles */
 .midi-header {
-    margin-bottom: 20px;
-    padding: 20px;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    border-left: 4px solid #007bff;
+    padding: 4px 4px 0 4px;
 }
 
 .midi-header h2 {
-    margin: 0 0 15px 0;
-    color: #495057;
+    margin: 0 0 10px 0;
+    font-size: 20px;
+    color: #212529;
 }
 
 .header-info {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 4px 16px;
 }
 
 .header-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
     padding: 5px 0;
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 1px solid #b8bdc2;
 }
 
-.header-row:last-child {
-    border-bottom: none;
+.header-file {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.file-name {
+    font-family: monospace;
+    font-size: 17px;
+    font-weight: 700;
+    color: #1f3cf0;
+    word-break: break-all;
 }
 
 .label {
     font-weight: 600;
-    color: #495057;
+    color: #212529;
 }
 
 .value {
-    color: #6c757d;
+    color: #343a40;
     font-family: monospace;
+    text-align: right;
 }
 
 /* Main App Styles */
@@ -363,35 +394,29 @@ div.selbox {
 }
 
 .midi-content {
-    margin-top: 30px;
+    margin-top: 24px;
+    padding: 16px;
+    background-color: #d5d9dd;
+    border: 1px solid #b8bdc2;
+    border-left: 5px solid #1f3cf0;
+    border-radius: 8px;
 }
 
-.content-header {
-    margin-bottom: 30px;
-}
-
-.midi-stats {
-    margin: 20px 0;
-    padding: 15px;
-    background-color: #e3f2fd;
-    border-radius: 6px;
-}
-
-.stats-row {
+.file-actions {
     display: flex;
-    gap: 20px;
     flex-wrap: wrap;
-    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
 }
 
-.stat-item {
-    padding: 8px 12px;
-    background-color: white;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 600;
-    color: #495057;
+.midi-content > .file-actions {
+    margin-top: 12px;
 }
+
+
+
+
 
 .content-controls {
     display: flex;
@@ -428,7 +453,7 @@ div.selbox {
 }
 
 .clear-button {
-    background-color: #6c757d;
+    background-color: #212529;
     color: white;
     border: none;
     padding: 10px 20px;
@@ -438,11 +463,11 @@ div.selbox {
 }
 
 .clear-button:hover {
-    background-color: #5a6268;
+    background-color: #000;
 }
 
 .track-list {
-    margin: 30px 0;
+    margin: 0;
 }
 
 .usage-notes {
@@ -479,19 +504,13 @@ div.selbox {
     }
     
     .header-info {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .file-actions {
+        margin-left: 0;
     }
     
-    .track-stats {
-        flex-direction: column;
-        gap: 8px;
-    }
-    
-    .stats-row {
-        flex-direction: column;
-        align-items: center;
-        gap: 8px;
-    }
     
     .action-buttons {
         flex-direction: column;

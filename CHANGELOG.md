@@ -7,6 +7,13 @@ features are still being tried out on the MPC.
 
 The version is shown on the website next to the GitHub link.
 
+## [0.2.0] - 2026-10-20
+
+### Changed
+
+- "Add matching .xtm track files" is on by default.
+- More compact layout with higher contrast, so many loaded files are easier to tell apart: each MIDI file is one block with a coloured edge, its information (format, tracks, tracks with notes, total notes, time division, tempo) sits in one row with the file name highlighted below, and "Include all tracks of this file in ZIP" and "Remove file" moved into the button row of the file's last track. Darker timeline, track cards and info chips, stronger button colours (Play blue, Stop dark).
+
 ## [0.1.1] - 2026-10-19
 
 ### Fixed
@@ -45,5 +52,6 @@ First release of this fork of [miathedev/medianmpc](https://github.com/miathedev
 - Selection times and track durations were shown in seconds computed for 480 ticks per quarter at 120 BPM, which was wrong for most files.
 - The dev server opened `http://localhost:8080/` instead of `http://localhost:8080/medianmpc/`.
 
+[0.2.0]: https://github.com/codmpm/medianmpc/releases/tag/v0.2.0
 [0.1.1]: https://github.com/codmpm/medianmpc/releases/tag/v0.1.1
 [0.1.0]: https://github.com/codmpm/medianmpc/releases/tag/v0.1.0
