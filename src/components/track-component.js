@@ -90,7 +90,7 @@ export class TrackComponent extends Component {
     formatSixteenths = (sixteenths) => MPCConverter.formatMpcLength(sixteenths * SIXTEENTH_PULSES);
 
     render() {
-    const { track, trackNum, toneTrack, toneMidi, selected, onToggleSelect, converter, range, selection, onSelectionChange, totalSixteenths, includeXtm } = this.props;
+    const { track, trackNum, toneTrack, toneMidi, selected, onToggleSelect, converter, range, selection, onSelectionChange, totalSixteenths, includeXtm, fileActions } = this.props;
         const { isConverting } = this.state;
 
         if (!track) {
@@ -272,6 +272,7 @@ export class TrackComponent extends Component {
                                         Clear Selection
                                     </button>
                                 )}
+                                {fileActions}
                             </div>
                         </div>
                     </div>
@@ -293,39 +294,40 @@ export class TrackComponent extends Component {
  */
 export class MidiHeader extends Component {
     render() {
-        const { header, text } = this.props;
-        
+        const { header, text, stats } = this.props;
+
         if (!header) return null;
+
+        const items = [
+            ['Format', `Type ${header.format || 0}`],
+            ['Tracks', header.trackCount || 0],
+            ...(stats ? [
+                ['Tracks with Notes', stats.tracksWithNotes],
+                ['Total Notes', stats.totalNotes]
+            ] : []),
+            ['Time Division', `${header.ticksPerQuarter || header.timeDivision || 480} ticks per 1/4 note`],
+            ...(header.tempoBPM ? [
+                ['Tempo', `${header.tempoBPM.toFixed ? header.tempoBPM.toFixed(2) : header.tempoBPM} BPM`]
+            ] : [])
+        ];
 
         return (
             <div className="midi-header">
                 <h2>MIDI File Information</h2>
                 <div className="header-info">
-                    <div className="header-row">
-                        <span className="label">Format:</span>
-                        <span className="value">Type {header.format || 0}</span>
-                    </div>
-                    <div className="header-row">
-                        <span className="label">Tracks:</span>
-                        <span className="value">{header.trackCount || 0}</span>
-                    </div>
-                    <div className="header-row">
-                        <span className="label">Time Division:</span>
-                        <span className="value">{header.ticksPerQuarter || header.timeDivision || 480} ticks per quarter note</span>
-                    </div>
-                    {header.tempoBPM && (
-                        <div className="header-row">
-                            <span className="label">Tempo:</span>
-                            <span className="value">{header.tempoBPM.toFixed ? header.tempoBPM.toFixed(2) : header.tempoBPM} BPM</span>
+                    {items.map(([label, value]) => (
+                        <div className="header-row" key={label}>
+                            <span className="label">{label}:</span>
+                            <span className="value">{value}</span>
                         </div>
-                    )}
-                    {text && (
-                        <div className="header-row">
-                            <span className="label">File:</span>
-                            <span className="value">{text}</span>
-                        </div>
-                    )}
+                    ))}
                 </div>
+                {text && (
+                    <div className="header-file">
+                        <span className="label">File:</span>
+                        <span className="file-name">{text}</span>
+                    </div>
+                )}
             </div>
         );
     }

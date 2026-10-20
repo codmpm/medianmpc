@@ -21,7 +21,7 @@ export class MidiConverterApp extends Component {
         this.state = {
             files: [],
             selected: new Set(),
-            includeXtm: false,
+            includeXtm: true,
             // Timeline selections in sixteenths ({ start, end }), by track key
             selections: {},
             pendingLoads: 0,
@@ -274,6 +274,8 @@ export class MidiConverterApp extends Component {
         return (
             <div className="track-list">
                 {tracksWithNotes.map(({ track, midiTrackIndex }, uiIndex) => {
+                    // The file's own actions go into the button row of its last track
+                    const isLastTrack = uiIndex === tracksWithNotes.length - 1;
                     const toneTrack = toneTracksWithNotes[uiIndex] || null;
                     if (!toneTrack) {
                         console.warn(`No Tone.js track found for MIDI track index ${midiTrackIndex}.`);
@@ -296,6 +298,7 @@ export class MidiConverterApp extends Component {
                             onSelectionChange={(selection) => this.setSelection(this.trackKey(fileEntry.id, midiTrackIndex), selection)}
                             totalSixteenths={fileEntry.gridSixteenths}
                             includeXtm={this.state.includeXtm}
+                            fileActions={isLastTrack ? this.renderFileActions(fileEntry) : null}
                             midiArrayBuffer={midiArrayBuffer}
                             toneTrack={toneTrack}
                             toneMidi={toneMidi}
@@ -306,64 +309,54 @@ export class MidiConverterApp extends Component {
         );
     };
 
-    renderStats = (midiDocument) => {
-        let totalNotes = 0;
-        let totalTracks = midiDocument.tracks.length;
-        let tracksWithNotes = 0;
+    getFileStats = (midiDocument) => {
+        const tracksWithNotes = this.getTracksWithNotes(midiDocument);
+        return {
+            tracksWithNotes: tracksWithNotes.length,
+            totalNotes: tracksWithNotes.reduce((sum, { track }) => sum + track.notes.length, 0)
+        };
+    };
 
-        midiDocument.tracks.forEach(track => {
-            if (track.notes && track.notes.length > 0) {
-                totalNotes += track.notes.length;
-                tracksWithNotes++;
-            }
-        });
+    renderFileActions = (fileEntry) => {
+        const { selected } = this.state;
+        const trackKeys = this.getTrackKeys(fileEntry);
+        const selectedCount = trackKeys.filter(key => selected.has(key)).length;
 
         return (
-            <div className="midi-stats">
-                <div className="stats-row">
-                    <span className="stat-item">Total Tracks: {totalTracks}</span>
-                    <span className="stat-item">Tracks with Notes: {tracksWithNotes}</span>
-                    <span className="stat-item">Total Notes: {totalNotes}</span>
-                </div>
+            <div className="file-actions">
+                <label className="select-toggle">
+                    <input
+                        type="checkbox"
+                        checked={trackKeys.length > 0 && selectedCount === trackKeys.length}
+                        onChange={() => this.toggleFile(fileEntry)}
+                    />
+                    Include all tracks of this file in ZIP
+                </label>
+                <button
+                    className="clear-button"
+                    onClick={() => this.removeFile(fileEntry.id)}
+                >
+                    Remove file
+                </button>
             </div>
         );
     };
 
     renderFile = (fileEntry) => {
-        const { selected } = this.state;
         const { midiDocument, name, id } = fileEntry;
-        const trackKeys = this.getTrackKeys(fileEntry);
-        const selectedCount = trackKeys.filter(key => selected.has(key)).length;
+        const hasTracks = this.getTracksWithNotes(midiDocument).length > 0;
 
         return (
             <div className="midi-content" key={`file-${id}`}>
-                <div className="content-header">
-                    <MidiHeader
-                        header={midiDocument.header}
-                        text={name}
-                    />
+                <MidiHeader
+                    header={midiDocument.header}
+                    text={name}
+                    stats={this.getFileStats(midiDocument)}
+                />
 
-                    {this.renderStats(midiDocument)}
-
-                    <div className="content-controls">
-                        <label className="select-toggle">
-                            <input
-                                type="checkbox"
-                                checked={trackKeys.length > 0 && selectedCount === trackKeys.length}
-                                onChange={() => this.toggleFile(fileEntry)}
-                            />
-                            Include all tracks of this file in ZIP
-                        </label>
-                        <button
-                            className="clear-button"
-                            onClick={() => this.removeFile(id)}
-                        >
-                            Remove file
-                        </button>
-                    </div>
-                </div>
-
-                {this.renderTrackList(fileEntry)}
+                {hasTracks
+                    ? this.renderTrackList(fileEntry)
+                    : this.renderFileActions(fileEntry)}
             </div>
         );
     };
@@ -476,7 +469,7 @@ export class MidiConverterApp extends Component {
                     </ol>
                     <h3>Saving Custom Arp Patterns on the MPC</h3>
                     <ol>
-                        <li>Tick &quot;Add matching .xtm track files&quot; before downloading the ZIP. It then contains an empty MPC track file next to every pattern, with the same name and the pattern&apos;s length as track length.</li>
+                        <li>Keep &quot;Add matching .xtm track files&quot; ticked (it is on by default) when downloading the ZIP. It then contains an empty MPC track file next to every pattern, with the same name and the pattern&apos;s length as track length.</li>
                         <li>On the MPC, load the .xtm first, then load the .mpcpattern into that track.</li>
                         <li>Save the track as an arp pattern: name and length are already set. The .xtm contains no notes; the MPC ignores notes in track files.</li>
                     </ol>

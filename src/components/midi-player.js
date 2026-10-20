@@ -314,7 +314,7 @@ export class MidiPlayer extends React.Component {
       <span style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
         <button
           className="mpc-button midi-play-btn"
-          style={{ padding: '8px 16px', background: '#007bff', fontSize: 14 }}
+          style={{ padding: '8px 16px', fontSize: 14 }}
           onClick={this.playTrack}
           disabled={this.state.isPlaying}
         >

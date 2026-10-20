@@ -7,6 +7,13 @@ features are still being tried out on the MPC.
 
 The version is shown on the website next to the GitHub link.
 
+## [Unreleased]
+
+### Changed
+
+- "Add matching .xtm track files" is on by default.
+- More compact layout with higher contrast, so many loaded files are easier to tell apart: each MIDI file is one block with a coloured edge, its information (format, tracks, tracks with notes, total notes, time division, tempo) sits in one row with the file name highlighted below, and "Include all tracks of this file in ZIP" and "Remove file" moved into the button row of the file's last track. Darker timeline, track cards and info chips, stronger button colours (Play blue, Stop dark).
+
 ## [0.1.1] - 2026-10-19
 
 ### Fixed
