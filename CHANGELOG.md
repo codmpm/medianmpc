@@ -7,6 +7,12 @@ features are still being tried out on the MPC.
 
 The version is shown on the website next to the GitHub link.
 
+## [Unreleased]
+
+### Changed
+
+- The suggested pattern length now starts from the end of the last note and is rounded to the next common pattern length of 4, 8, 16, 32, 64, 128 or 256 steps, with one step of tolerance (15 or 17 → 16, 24 → 32, 33 → 32). The previous rule (last note start plus the most common step, rounded to quarter notes) failed for a roll at the end, e.g. "VPS_MT5 Basic Filler 1" got 36 instead of 32 steps, and for irregular patterns like "VPS_MT5 Basic Filler 2 Add" (28 instead of 32). Lengths like 12, 24 or 48 steps can still be set with a selection.
+
 ## [0.4.0] - 2026-10-26
 
 ### Changed

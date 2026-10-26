@@ -313,46 +313,25 @@ export class MPCConverter {
      * Suggested pattern length in sixteenths for a whole track, measured from
      * the start of the MIDI file (like convertRangeToMPC).
      *
-     * An arp pattern is a grid of steps, so the length is the last note start
-     * plus the most common distance between note starts, but never shorter
-     * than the end of the last note. Note starts are rounded to the nearest
-     * sixteenth first, so swing or humanized timing (e.g. off-beats a few
-     * ticks late) does not add a step; the end of the last note is rounded up
-     * so the note stays inside the pattern.
-     *
-     * Patterns are practically always whole quarter notes long, so the result
-     * is rounded to the nearest multiple of 4 sixteenths (15 or 17 become 16,
-     * a tie like 6 goes up to 8). Notes beyond a length that was rounded down
-     * are left out, like notes outside a selection.
+     * Starts from the end of the last note (rounded up to a whole sixteenth)
+     * and rounds it to the next common pattern length: 4, 8, 16, 32, 64, 128
+     * or 256 steps. One step of tolerance lets 15 or 17 become 16 and 33
+     * become 32; notes after a length that was rounded down are left out,
+     * like notes outside a selection. Other lengths (e.g. 12 or 24 steps) can
+     * still be set with a selection.
      */
     suggestLengthSixteenths(midiTrackIndex) {
         const track = this.midi.tracks[midiTrackIndex];
         const notes = track?.notes || [];
         if (notes.length === 0) {
-            return 1;
+            return PATTERN_LENGTHS[0];
         }
 
-        const toSixteenths = (ticks) => this.toMpcPulses(ticks) / SIXTEENTH_PULSES;
-        const starts = [...new Set(notes.map(note => Math.round(toSixteenths(note.time))))].sort((a, b) => a - b);
-        const lastEnd = Math.ceil(Math.max(...notes.map(note => toSixteenths(note.time + note.duration))));
+        const lastEndPulses = Math.max(...notes.map(note => this.toMpcPulses(note.time + note.duration)));
+        const lastEnd = Math.ceil(lastEndPulses / SIXTEENTH_PULSES);
 
-        // Most common distance between note starts; the smaller one wins a tie
-        const counts = new Map();
-        for (let i = 1; i < starts.length; i++) {
-            const distance = starts[i] - starts[i - 1];
-            counts.set(distance, (counts.get(distance) || 0) + 1);
-        }
-        let step = 0;
-        let stepCount = 0;
-        counts.forEach((count, distance) => {
-            if (count > stepCount || (count === stepCount && distance < step)) {
-                step = distance;
-                stepCount = count;
-            }
-        });
-
-        const length = Math.max(1, starts[starts.length - 1] + step, lastEnd);
-        return Math.max(QUARTER_SIXTEENTHS, Math.round(length / QUARTER_SIXTEENTHS) * QUARTER_SIXTEENTHS);
+        return PATTERN_LENGTHS.find(length => length >= lastEnd - 1)
+            ?? Math.ceil(lastEnd / PATTERN_LENGTHS[PATTERN_LENGTHS.length - 1]) * PATTERN_LENGTHS[PATTERN_LENGTHS.length - 1];
     }
 
     /**
@@ -370,7 +349,8 @@ export class MPCConverter {
 // MPC patterns and track files use 960 pulses per quarter note
 export const MPC_PPQ = 960;
 export const SIXTEENTH_PULSES = MPC_PPQ / 4;
-const QUARTER_SIXTEENTHS = 4;
+// Common pattern lengths in sixteenths (1 beat up to 16 bars)
+const PATTERN_LENGTHS = [4, 8, 16, 32, 64, 128, 256];
 
 /**
  * MIDI velocity (0-127) as the 0-1 value string of an MPC note event,
