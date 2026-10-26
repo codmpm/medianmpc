@@ -7,6 +7,16 @@ features are still being tried out on the MPC.
 
 The version is shown on the website next to the GitHub link.
 
+## [Unreleased]
+
+### Added
+
+- A box to the right of the timeline shows the length of the pattern or selection in MPC notation with the number of steps, e.g. `4:0:0 (64 steps)`, in the same size. Green edge for the whole pattern, blue while a range is selected; on narrow screens it sits below the timeline.
+
+### Changed
+
+- The length moved from the line below the timeline into that box; the line keeps range and note count.
+
 ## [0.2.1] - 2026-10-26
 
 ### Fixed
@@ -18,7 +28,7 @@ The version is shown on the website next to the GitHub link.
 ### Changed
 
 - "Add matching .xtm track files" is on by default.
-- More compact layout with higher contrast, so many loaded files are easier to tell apart: each MIDI file is one block with a coloured edge, its information (format, tracks, tracks with notes, total notes, time division, tempo) sits in one row with the file name highlighted below, and "Include all tracks of this file in ZIP" and "Remove file" moved into the button row of the file's last track. Darker timeline, track cards and info chips, stronger button colours (Play blue, Stop dark).
+- More compact layout with higher contrast, so many loaded files are easier to tell apart: each MIDI file is one block with a coloured edge, its information (format, tracks, tracks with notes, total notes, time division, tempo) sits in one row with the file name highlighted below, and "Include all tracks of this file in ZIP" and "Remove file" moved into the button row of the file's last track. Darker timeline, track cards and info chips, stronger button colours (Play blue, Stop dark), selections shaded blue.
 
 ## [0.1.1] - 2026-10-19
 

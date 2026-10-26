@@ -566,3 +566,64 @@ div.selbox {
     color: #6c757d;
     font-size: 12px;
 }
+
+/* Floating length box to the right of the timeline */
+.timeline-area {
+    position: relative;
+}
+
+.length-badge {
+    position: absolute;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 150px;
+    padding: 10px 18px;
+    background-color: #ffffff;
+    border: 1px solid #b8bdc2;
+    border-left: 5px solid #138a1f;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    pointer-events: none;
+}
+
+.length-badge.is-selection {
+    border-left-color: #1f3cf0;
+}
+
+.length-badge-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #495057;
+}
+
+.length-badge-value,
+.length-badge-steps {
+    font-family: monospace;
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #212529;
+}
+
+@media (max-width: 1100px) {
+    /* The timeline fills the width here, so show the box below it */
+    .length-badge {
+        position: static;
+        transform: none;
+        margin: 10px 20px 0 20px;
+        box-shadow: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .length-badge-value,
+    .length-badge-steps {
+        font-size: 22px;
+    }
+}
