@@ -1,6 +1,6 @@
 {
   "name": "midi-mpc-converter",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Convert MIDI files to MPC pattern format for Akai Force and other Akai products",
   "homepage": "https://codmpm.github.io/medianmpc/",
   "repository": {

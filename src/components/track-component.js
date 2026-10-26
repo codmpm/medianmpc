@@ -218,13 +218,28 @@ export class TrackComponent extends Component {
 
                 {stats && stats.noteCount > 0 && (
                     <div className="track-content">
-                        <MidiVisualizer
-                            track={track}
-                            converter={converter}
-                            totalSixteenths={totalSixteenths}
-                            selection={selection}
-                            onSelectionChange={onSelectionChange}
-                        />
+                        <div className="timeline-area">
+                            <MidiVisualizer
+                                track={track}
+                                converter={converter}
+                                totalSixteenths={totalSixteenths}
+                                selection={selection}
+                                onSelectionChange={onSelectionChange}
+                            />
+                            {range && (
+                                <div className={`length-badge${hasSelection ? ' is-selection' : ''}`}>
+                                    <span className="length-badge-label">
+                                        {hasSelection ? 'Selection length' : 'Pattern length'}
+                                    </span>
+                                    <span className="length-badge-value">
+                                        {this.formatSixteenths(range.end - range.start)}
+                                    </span>
+                                    <span className="length-badge-steps">
+                                        ({range.end - range.start} {range.end - range.start === 1 ? 'step' : 'steps'})
+                                    </span>
+                                </div>
+                            )}
+                        </div>
                         
                         <div className="track-controls">
                             {range && (
@@ -234,10 +249,6 @@ export class TrackComponent extends Component {
                                     </span>
                                     <span className="mpc-time">
                                         {this.formatSixteenths(range.start)} – {this.formatSixteenths(range.end)}
-                                    </span>
-                                    <span>
-                                        Length <span className="mpc-time">{this.formatSixteenths(range.end - range.start)}</span>
-                                        {' '}({range.end - range.start} × 1/16)
                                     </span>
                                     <span>{patternNoteCount} {patternNoteCount === 1 ? 'note' : 'notes'}</span>
                                     <span className="selection-hint">

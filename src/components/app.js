@@ -463,7 +463,7 @@ export class MidiConverterApp extends Component {
                     <ol>
                         <li>Load one or more MIDI files by drag &amp; drop or with &quot;Choose MIDI Files&quot;. Everything runs in your browser; no data is sent anywhere.</li>
                         <li>Every track with notes is shown on a timeline with bar, beat and sixteenth lines, starting at the beginning of the MIDI file, so rests before the first note are kept. Drag on it to select a range; the selection snaps to sixteenths. Without a selection, the pattern runs from the start to a suggested length: the last note start plus the usual step between notes.</li>
-                        <li>A pattern starts at the beginning of its range and contains only the notes that lie completely inside it. Range, length and note count are shown below the timeline in MPC notation (bars:beats:ticks).</li>
+                        <li>A pattern starts at the beginning of its range and contains only the notes that lie completely inside it. Its length and number of steps (sixteenths) are shown in a box to the right of the timeline, range and note count below it, in MPC notation (bars:beats:ticks).</li>
                         <li>&quot;Download pattern&quot; saves a single track. For several tracks, tick &quot;Include in ZIP&quot; and use &quot;Download N patterns as ZIP&quot;.</li>
                         <li>Patterns are named after the MIDI file. Files with several tracks get one pattern per track, named &quot;&lt;file&gt; - &lt;track&gt;.mpcpattern&quot;.</li>
                     </ol>
