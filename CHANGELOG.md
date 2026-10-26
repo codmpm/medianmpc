@@ -7,6 +7,12 @@ features are still being tried out on the MPC.
 
 The version is shown on the website next to the GitHub link.
 
+## [Unreleased]
+
+### Changed
+
+- The suggested pattern length is rounded to the nearest whole quarter note (multiple of 4 steps): 15 or 17 steps become 16, 31 or 33 become 32, 63 or 65 become 64; a tie goes up, so e.g. 6 steps become 8. Notes after a length that was rounded down are left out. Selections are not rounded. The explanation on the website says so.
+
 ## [0.3.0] - 2026-10-26
 
 ### Added
