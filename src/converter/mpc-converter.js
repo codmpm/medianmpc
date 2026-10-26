@@ -315,7 +315,10 @@ export class MPCConverter {
      *
      * An arp pattern is a grid of steps, so the length is the last note start
      * plus the most common distance between note starts, but never shorter
-     * than the end of the last note. Rounded up to whole sixteenths.
+     * than the end of the last note. Note starts are rounded to the nearest
+     * sixteenth first, so swing or humanized timing (e.g. off-beats a few
+     * ticks late) does not add a step; the end of the last note is rounded up
+     * so the note stays inside the pattern.
      */
     suggestLengthSixteenths(midiTrackIndex) {
         const track = this.midi.tracks[midiTrackIndex];
@@ -324,8 +327,9 @@ export class MPCConverter {
             return 1;
         }
 
-        const starts = [...new Set(notes.map(note => this.toMpcPulses(note.time)))].sort((a, b) => a - b);
-        const lastEnd = Math.max(...notes.map(note => this.toMpcPulses(note.time + note.duration)));
+        const toSixteenths = (ticks) => this.toMpcPulses(ticks) / SIXTEENTH_PULSES;
+        const starts = [...new Set(notes.map(note => Math.round(toSixteenths(note.time))))].sort((a, b) => a - b);
+        const lastEnd = Math.ceil(Math.max(...notes.map(note => toSixteenths(note.time + note.duration))));
 
         // Most common distance between note starts; the smaller one wins a tie
         const counts = new Map();
@@ -342,8 +346,7 @@ export class MPCConverter {
             }
         });
 
-        const length = Math.max(starts[starts.length - 1] + step, lastEnd);
-        return Math.max(1, Math.ceil(length / SIXTEENTH_PULSES));
+        return Math.max(1, starts[starts.length - 1] + step, lastEnd);
     }
 
     /**

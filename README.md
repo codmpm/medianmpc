@@ -5,7 +5,7 @@ A web-based application that converts MIDI files to MPC pattern format (.mpcpatt
 This is a fork of [miathedev/medianmpc](https://github.com/miathedev/medianmpc) that adds loading several files, a ZIP export, sixteenth-snapped selections and .xtm track files for saving custom arp patterns on the MPC.
 
 - **Use it online**: https://codmpm.github.io/medianmpc/
-- **Current version**: 0.2.0, see the [changelog](CHANGELOG.md). The version is also shown on the website.
+- **Current version**: 0.2.1, see the [changelog](CHANGELOG.md). The version is also shown on the website.
 
 ## Features
 
@@ -108,7 +108,7 @@ Pushing `main` deploys the website through GitHub Pages.
    - Positions are measured from the start of the MIDI file, so a rest before the first note is kept
    - The pattern starts at the beginning of the selection (step 1 is at 0:0:0) and only contains notes that lie completely inside it
    - Below the timeline, the range and its length are shown in MPC notation, e.g. `Selection: 0:0:24 – 0:1:0  Length 0:0:72 (3 × 1/16)`, together with the number of notes
-   - Without a selection, the pattern runs from 0:0:0 to the suggested length: the last note start plus the most common step between note starts, never shorter than the end of the last note, rounded up to a whole sixteenth
+   - Without a selection, the pattern runs from 0:0:0 to the suggested length: the last note start plus the most common step between note starts (both rounded to the nearest sixteenth, so swing does not add a step), never shorter than the end of the last note, rounded up to a whole sixteenth
    - Click without dragging or use "Clear Selection" to go back to the whole pattern
 
 4. **Download a Single Pattern**:
