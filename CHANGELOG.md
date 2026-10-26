@@ -7,7 +7,7 @@ features are still being tried out on the MPC.
 
 The version is shown on the website next to the GitHub link.
 
-## [Unreleased]
+## [0.4.0] - 2026-10-26
 
 ### Changed
 
@@ -74,6 +74,7 @@ First release of this fork of [miathedev/medianmpc](https://github.com/miathedev
 - Selection times and track durations were shown in seconds computed for 480 ticks per quarter at 120 BPM, which was wrong for most files.
 - The dev server opened `http://localhost:8080/` instead of `http://localhost:8080/medianmpc/`.
 
+[0.4.0]: https://github.com/codmpm/medianmpc/releases/tag/v0.4.0
 [0.3.0]: https://github.com/codmpm/medianmpc/releases/tag/v0.3.0
 [0.2.1]: https://github.com/codmpm/medianmpc/releases/tag/v0.2.1
 [0.2.0]: https://github.com/codmpm/medianmpc/releases/tag/v0.2.0

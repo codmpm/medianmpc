@@ -5,7 +5,7 @@ A web-based application that converts MIDI files to MPC pattern format (.mpcpatt
 This is a fork of [miathedev/medianmpc](https://github.com/miathedev/medianmpc) that adds loading several files, a ZIP export, sixteenth-snapped selections and .xtm track files for saving custom arp patterns on the MPC.
 
 - **Use it online**: https://codmpm.github.io/medianmpc/
-- **Current version**: 0.3.0, see the [changelog](CHANGELOG.md). The version is also shown on the website.
+- **Current version**: 0.4.0, see the [changelog](CHANGELOG.md). The version is also shown on the website.
 
 ## Features
 
