@@ -108,7 +108,7 @@ Pushing `main` deploys the website through GitHub Pages.
    - Positions are measured from the start of the MIDI file, so a rest before the first note is kept
    - The pattern starts at the beginning of the selection (step 1 is at 0:0:0) and only contains notes that lie completely inside it
    - Below the timeline, the range and its length are shown in MPC notation, e.g. `Selection: 0:0:24 – 0:1:0  Length 0:0:72 (3 × 1/16)`, together with the number of notes
-   - Without a selection, the pattern runs from 0:0:0 to the suggested length: the last note start plus the most common step between note starts, never shorter than the end of the last note, rounded up to a whole sixteenth
+   - Without a selection, the pattern runs from 0:0:0 to the suggested length: the last note start plus the most common step between note starts (both rounded to the nearest sixteenth, so swing does not add a step), never shorter than the end of the last note, rounded up to a whole sixteenth
    - Click without dragging or use "Clear Selection" to go back to the whole pattern
 
 4. **Download a Single Pattern**:

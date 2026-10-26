@@ -7,6 +7,12 @@ features are still being tried out on the MPC.
 
 The version is shown on the website next to the GitHub link.
 
+## [Unreleased]
+
+### Fixed
+
+- Files played with swing or humanized timing got one sixteenth too much as suggested length (e.g. 65 instead of 64 for "VPS_Chords Sparkling Trancer + Bass"): a late off-beat counted as a longer step. Note starts are now rounded to the nearest sixteenth for the suggestion; the notes themselves keep their timing.
+
 ## [0.2.0] - 2026-10-20
 
 ### Changed
