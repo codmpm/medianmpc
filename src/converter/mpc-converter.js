@@ -319,6 +319,11 @@ export class MPCConverter {
      * sixteenth first, so swing or humanized timing (e.g. off-beats a few
      * ticks late) does not add a step; the end of the last note is rounded up
      * so the note stays inside the pattern.
+     *
+     * Patterns are practically always whole quarter notes long, so the result
+     * is rounded to the nearest multiple of 4 sixteenths (15 or 17 become 16,
+     * a tie like 6 goes up to 8). Notes beyond a length that was rounded down
+     * are left out, like notes outside a selection.
      */
     suggestLengthSixteenths(midiTrackIndex) {
         const track = this.midi.tracks[midiTrackIndex];
@@ -346,7 +351,8 @@ export class MPCConverter {
             }
         });
 
-        return Math.max(1, starts[starts.length - 1] + step, lastEnd);
+        const length = Math.max(1, starts[starts.length - 1] + step, lastEnd);
+        return Math.max(QUARTER_SIXTEENTHS, Math.round(length / QUARTER_SIXTEENTHS) * QUARTER_SIXTEENTHS);
     }
 
     /**
@@ -364,6 +370,7 @@ export class MPCConverter {
 // MPC patterns and track files use 960 pulses per quarter note
 export const MPC_PPQ = 960;
 export const SIXTEENTH_PULSES = MPC_PPQ / 4;
+const QUARTER_SIXTEENTHS = 4;
 
 /**
  * MIDI velocity (0-127) as the 0-1 value string of an MPC note event,

@@ -7,6 +7,12 @@ features are still being tried out on the MPC.
 
 The version is shown on the website next to the GitHub link.
 
+## [0.4.0] - 2026-10-26
+
+### Changed
+
+- The suggested pattern length is rounded to the nearest whole quarter note (multiple of 4 steps): 15 or 17 steps become 16, 31 or 33 become 32, 63 or 65 become 64; a tie goes up, so e.g. 6 steps become 8. Notes after a length that was rounded down are left out. Selections are not rounded. The explanation on the website says so.
+
 ## [0.3.0] - 2026-10-26
 
 ### Added
@@ -68,6 +74,7 @@ First release of this fork of [miathedev/medianmpc](https://github.com/miathedev
 - Selection times and track durations were shown in seconds computed for 480 ticks per quarter at 120 BPM, which was wrong for most files.
 - The dev server opened `http://localhost:8080/` instead of `http://localhost:8080/medianmpc/`.
 
+[0.4.0]: https://github.com/codmpm/medianmpc/releases/tag/v0.4.0
 [0.3.0]: https://github.com/codmpm/medianmpc/releases/tag/v0.3.0
 [0.2.1]: https://github.com/codmpm/medianmpc/releases/tag/v0.2.1
 [0.2.0]: https://github.com/codmpm/medianmpc/releases/tag/v0.2.0

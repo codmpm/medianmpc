@@ -5,7 +5,7 @@ A web-based application that converts MIDI files to MPC pattern format (.mpcpatt
 This is a fork of [miathedev/medianmpc](https://github.com/miathedev/medianmpc) that adds loading several files, a ZIP export, sixteenth-snapped selections and .xtm track files for saving custom arp patterns on the MPC.
 
 - **Use it online**: https://codmpm.github.io/medianmpc/
-- **Current version**: 0.3.0, see the [changelog](CHANGELOG.md). The version is also shown on the website.
+- **Current version**: 0.4.0, see the [changelog](CHANGELOG.md). The version is also shown on the website.
 
 ## Features
 
@@ -109,7 +109,9 @@ Pushing `main` deploys the website through GitHub Pages.
    - The pattern starts at the beginning of the selection (step 1 is at 0:0:0) and only contains notes that lie completely inside it
    - A box to the right of the timeline shows the length in MPC notation and the number of steps (sixteenths), e.g. `0:1:48 (6 steps)`: "Pattern length" with a green edge, or "Selection length" with a blue edge while a range is selected. On narrow screens the box sits below the timeline
    - Below the timeline, the range and the number of notes are shown, e.g. `Selection: 0:0:24 – 0:1:0  3 notes`
-   - Without a selection, the pattern runs from 0:0:0 to the suggested length: the last note start plus the most common step between note starts (both rounded to the nearest sixteenth, so swing does not add a step), never shorter than the end of the last note, rounded up to a whole sixteenth
+   - Without a selection, the pattern runs from 0:0:0 to the suggested length: the last note start plus the most common step between note starts (both rounded to the nearest sixteenth, so swing does not add a step), never shorter than the end of the last note
+   - The suggestion is then rounded to the nearest whole quarter note, i.e. a multiple of 4 steps, because patterns practically always have such lengths (16, 32, 64, 128, 256 steps): 15 or 17 steps become 16, 31 or 33 become 32, 63 or 65 become 64; a tie goes up (6 becomes 8). Notes after a length that was rounded down are left out
+   - A selection is not rounded; it keeps exactly the steps you drag
    - Click without dragging or use "Clear Selection" to go back to the whole pattern
 
 4. **Download a Single Pattern**:
