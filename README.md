@@ -5,7 +5,7 @@ A web-based application that converts MIDI files to MPC pattern format (.mpcpatt
 This is a fork of [miathedev/medianmpc](https://github.com/miathedev/medianmpc) that adds loading several files, a ZIP export, sixteenth-snapped selections and .xtm track files for saving custom arp patterns on the MPC.
 
 - **Use it online**: https://codmpm.github.io/medianmpc/
-- **Current version**: 0.5.0, see the [changelog](CHANGELOG.md). The version is also shown on the website.
+- **Current version**: 0.6.0, see the [changelog](CHANGELOG.md). The version is also shown on the website.
 
 ## Features
 
@@ -18,6 +18,7 @@ This is a fork of [miathedev/medianmpc](https://github.com/miathedev/medianmpc) 
 - **Meaningful File Names**: Patterns are named after the MIDI file (and track), not "Track_1"
 - **ZIP Export**: Tick the tracks you want and download all their patterns as one ZIP file
 - **Matching .xtm Track Files**: Optionally add an empty MPC track file per pattern, so the MPC suggests the right name when you save the pattern as a custom arp pattern
+- **MPC Project**: Optionally add an MPC project (.xpj) with one MIDI track per pattern (name, length and notes), up to 128 tracks
 - **Pattern Length**: Each .xtm carries the track length: the selection, or a length suggested from the notes
 - **Real-time Preview**: See notes, velocities, and timing information
 - **Drag & Drop**: Easy file loading with drag and drop support
@@ -35,8 +36,11 @@ src/
 ├── converter/           # MPC conversion logic
 │   ├── mpc-converter.js # MIDI to MPC pattern conversion and file naming
 │   ├── xtm-builder.js   # Builds named, empty MPC track files (.xtm)
+│   ├── xpj-builder.js   # Builds an MPC project (.xpj) with one MIDI track per pattern
+│   ├── lossless-json.js # Reads and writes MPC JSON without changing its numbers
 │   └── templates/
-│       └── track-template.xtm  # Empty track file saved by MPC 3.9.1.2
+│       ├── track-template.xtm    # Empty track file saved by MPC 3.9.1.2
+│       └── project-template.xpj  # Project saved by MPC 3.9.1.2, reduced to one placeholder MIDI track
 ├── midi/               # MIDI processing utilities
 │   ├── midi-utils.js   # Core MIDI classes and utilities
 │   ├── midi-parser.js  # MIDI file parsing
@@ -142,6 +146,14 @@ When you save a track as an arp pattern on the MPC, you have to type in the name
 
 The .xtm files contain no notes, because the MPC ignores note events when it loads a track file. The notes always come from the .mpcpattern.
 
+### MPC Project
+
+"Add MPC project (.xpj)" is on by default and adds `mpc-patterns.xpj` to the ZIP. It is an MPC project with one MIDI track per pattern, in the order of the ZIP, each with the pattern's name, length and notes, so all patterns are on the MPC after loading one file.
+
+- The project has one sequence, "Sequence 01", as long as the longest track rounded up to whole bars (e.g. a longest track of 8:0:0 gives 8 bars)
+- An MPC project holds at most 128 MIDI tracks. If more patterns are selected, a warning appears and the project gets the first 128; untick those and download the rest again for a second project. The ZIP still contains all .mpcpattern and .xtm files
+- No project folder is needed, the .xpj alone can be loaded
+
 ## Supported Features
 
 ### MIDI Features
@@ -194,12 +206,21 @@ The .xtm files contain no notes, because the MPC ignores note events when it loa
 - The template contains no samples, file paths or device IDs
 - The JSON is edited as text, because a JSON round trip in the browser would turn values like `1.0` into `1` and round the pattern length `9223372036854775807`
 
+### Output: MPC Project (.xpj, optional)
+- Gzip-compressed text: a short header (`ACVS`, MPC version, `SerialisableProjectData`, `json`, OS) followed by JSON with one value per line and no indentation
+- Built from a project saved by MPC 3.9.1.2 and reduced to one placeholder MIDI track; the fixed submix, return and output tracks, mixer and settings stay as saved
+- Per pattern: a MIDI track (name, program name, `length`), a clip in the sequence's `trackClipMaps` with the notes as note events and the track length as loop end, and an entry in `clipPlayerData.trackClipTransportMap`. Clips and transport entries are keyed by track name and sorted by it
+- The sequence gets `lengthBars`, `loopEndBar`, `lengthPulses` and `loopEndPulses` from the longest track
+- `lossless-json.js` keeps numbers as their original text, so the template is written back byte for byte except for the generated parts
+- The template contains no samples, file paths or device IDs
+
 ## Limitations
 
 - Only Note On/Note Off events are converted
 - Other MIDI events (controllers, program changes, etc.) are not included in MPC patterns
 - Time selection is per track
-- The .xtm template was saved with MPC 3.9.1.2; other firmware versions have not been tested
+- The .xtm and .xpj templates were saved with MPC 3.9.1.2; other firmware versions have not been tested
+- An MPC project holds at most 128 MIDI tracks; more patterns need a second project
 - Pattern lengths are whole sixteenths and assume 4/4 for the bars:beats:ticks display
 - Maximum file size limited by browser memory
 
@@ -216,7 +237,7 @@ To contribute to this project:
 
 The original converter was written by [Catnip/Jamie Faye Fenton (Fentonia)](https://www.fentonia.com/catnip/midianmpc/index.html) and restructured into this codebase by [miathedev](https://github.com/miathedev/medianmpc). This fork lives at [codmpm/medianmpc](https://github.com/codmpm/medianmpc).
 
-The multi-file loading, the file naming, the ZIP export with track selection, the sixteenth-snapped selections and pattern length, the matching .xtm track files and the dependency cleanup were developed together with [Claude](https://claude.com/claude-code), Anthropic's AI assistant, using Claude Code.
+The multi-file loading, the file naming, the ZIP export with track selection, the sixteenth-snapped selections and pattern length, the matching .xtm track files, the MPC project export and the dependency cleanup were developed together with [Claude](https://claude.com/claude-code), Anthropic's AI assistant, using Claude Code.
 
 ## License
 
