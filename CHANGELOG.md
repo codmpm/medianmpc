@@ -7,6 +7,13 @@ features are still being tried out on the MPC.
 
 The version is shown on the website next to the GitHub link.
 
+## [Unreleased]
+
+### Added
+
+- "Add MPC project (.xpj)", on by default: the ZIP also contains `mpc-patterns.xpj`, an MPC project with one MIDI track per pattern, with the pattern's name, length and notes. It has one sequence as long as the longest track in whole bars. Built from a project saved by MPC 3.9.1.2.
+- A warning when more than 128 patterns are selected: an MPC project holds at most 128 MIDI tracks, so the project gets the first 128 and the rest needs a second export.
+
 ## [0.5.0] - 2026-10-26
 
 ### Changed

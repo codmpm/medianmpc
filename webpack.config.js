@@ -65,7 +65,7 @@ export default (env, argv) => {
           type: 'asset/resource'
         },
         {
-          test: /\.xtm$/i,
+          test: /\.(xtm|xpj)$/i,
           type: 'asset/resource'
         }
       ]

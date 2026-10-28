@@ -11,6 +11,7 @@ import { MPCConverter, SIXTEENTH_PULSES, downloadBlob } from '../converter/mpc-c
 import { Midi } from '@tonejs/midi';
 import { zipSync, strToU8 } from 'fflate';
 import { loadXtmTemplate, buildXtm } from '../converter/xtm-builder.js';
+import { loadXpjTemplate, buildXpj, MAX_PROJECT_TRACKS } from '../converter/xpj-builder.js';
 
 // Set from package.json at build time (webpack DefinePlugin)
 const APP_VERSION = __APP_VERSION__;
@@ -22,6 +23,7 @@ export class MidiConverterApp extends Component {
             files: [],
             selected: new Set(),
             includeXtm: true,
+            includeXpj: true,
             // Timeline selections in sixteenths ({ start, end }), by track key
             selections: {},
             pendingLoads: 0,
@@ -227,6 +229,7 @@ export class MidiConverterApp extends Component {
                     : (track.name || toneTracks[uiIndex]?.name || `Track ${uiIndex + 1}`);
                 return {
                     baseName: MPCConverter.buildBaseName(fileEntry.name, label),
+                    events: pattern.pattern.events,
                     content: MPCConverter.exportMPCPattern(pattern),
                     lengthPulses: (range.end - range.start) * SIXTEENTH_PULSES
                 };
@@ -234,12 +237,14 @@ export class MidiConverterApp extends Component {
     };
 
     downloadSelectedAsZip = async () => {
-        const { files, includeXtm } = this.state;
+        const { files, includeXtm, includeXpj } = this.state;
         this.setState({ isExporting: true });
         try {
             const xtmTemplate = includeXtm ? await loadXtmTemplate() : null;
+            const xpjTemplate = includeXpj ? await loadXpjTemplate() : null;
             const zipEntries = {};
-            files.flatMap(this.buildPatternFiles).forEach(({ baseName, content, lengthPulses }) => {
+            const projectTracks = [];
+            files.flatMap(this.buildPatternFiles).forEach(({ baseName, events, content, lengthPulses }) => {
                 // Same MIDI file name loaded twice: keep both patterns
                 let uniqueName = baseName;
                 for (let n = 2; zipEntries[`${uniqueName}.mpcpattern`]; n++) {
@@ -249,7 +254,13 @@ export class MidiConverterApp extends Component {
                 if (xtmTemplate) {
                     zipEntries[`${uniqueName}.xtm`] = buildXtm(xtmTemplate, uniqueName, lengthPulses);
                 }
+                projectTracks.push({ name: uniqueName, events, lengthPulses });
             });
+
+            // One MIDI track per pattern; the project takes the first MAX_PROJECT_TRACKS
+            if (xpjTemplate && projectTracks.length > 0) {
+                zipEntries['mpc-patterns.xpj'] = buildXpj(xpjTemplate, projectTracks);
+            }
 
             const zipData = zipSync(zipEntries);
             downloadBlob(new Blob([zipData], { type: 'application/zip' }), 'mpc-patterns.zip');
@@ -362,7 +373,7 @@ export class MidiConverterApp extends Component {
     };
 
     render() {
-        const { files, selected, includeXtm, pendingLoads, errors, isExporting } = this.state;
+        const { files, selected, includeXtm, includeXpj, pendingLoads, errors, isExporting } = this.state;
         const allTrackKeys = files.flatMap(this.getTrackKeys);
         const selectedCount = allTrackKeys.filter(key => selected.has(key)).length;
 
@@ -440,6 +451,17 @@ export class MidiConverterApp extends Component {
                             />
                             Add matching .xtm track files
                         </label>
+                        <label
+                            className="select-toggle"
+                            title="Adds an MPC project with one MIDI track per pattern: name, length and notes. Load it on the MPC to get all patterns at once."
+                        >
+                            <input
+                                type="checkbox"
+                                checked={includeXpj}
+                                onChange={() => this.setState(prev => ({ includeXpj: !prev.includeXpj }))}
+                            />
+                            Add MPC project (.xpj)
+                        </label>
                         <button
                             className="mpc-button"
                             onClick={this.downloadSelectedAsZip}
@@ -453,6 +475,14 @@ export class MidiConverterApp extends Component {
                         >
                             Remove all files
                         </button>
+                    </div>
+                )}
+
+                {includeXpj && selectedCount > MAX_PROJECT_TRACKS && (
+                    <div className="project-warning">
+                        {selectedCount} patterns are selected, but an MPC project holds at most {MAX_PROJECT_TRACKS} MIDI tracks.
+                        The .xpj in the ZIP only contains the first {MAX_PROJECT_TRACKS}. Untick those and download the
+                        remaining {selectedCount - MAX_PROJECT_TRACKS} again for a second project.
                     </div>
                 )}
 
@@ -473,6 +503,12 @@ export class MidiConverterApp extends Component {
                         <li>On the MPC, load the .xtm first, then load the .mpcpattern into that track.</li>
                         <li>Save the track as an arp pattern: name and length are already set. The .xtm contains no notes; the MPC ignores notes in track files.</li>
                     </ol>
+                    <h3>MPC Project</h3>
+                    <ul>
+                        <li>&quot;Add MPC project (.xpj)&quot; is on by default and adds mpc-patterns.xpj to the ZIP: an MPC project with one MIDI track per pattern, with the same name, length and notes. Load it on the MPC to get all patterns at once, without loading .xtm and .mpcpattern files one by one.</li>
+                        <li>The project has one sequence (Sequence 01). It is as long as the longest track, rounded up to whole bars.</li>
+                        <li>An MPC project holds at most {MAX_PROJECT_TRACKS} MIDI tracks. With more patterns selected, the project only gets the first {MAX_PROJECT_TRACKS}; untick those and download the rest again for a second project.</li>
+                    </ul>
                     <h3>Notes</h3>
                     <ul>
                         <li>Only Note On/Note Off events are converted.</li>
